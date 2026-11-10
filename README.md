@@ -1,37 +1,124 @@
-# Patronum
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./src/dashboard/web/public/brand/patronum-light.svg">
+    <img src="./src/dashboard/web/public/brand/patronum.svg" alt="Patronum" height="140">
+  </picture>
+</p>
 
-Sign one Instagram account in on a local Chrome, collect a profile's posts, download the media, keep the best copy of each file, and describe it with a vision model. A local dashboard starts the jobs and shows the results.
+<h1 align="center">Patronum</h1>
 
-This repository is a template. There is no default client: every collection names the handle it is for.
+<p align="center">
+  Collect an Instagram profile, download its media, and describe every image and video with a vision model.<br>
+  It runs on your machine, in your own Chrome, from one command.
+</p>
+
+---
+
+```text
+     ▄▄▄▄▄▄
+     ██████
+   ▄▄███████▄
+ ▄████████████▄
+ ██████▀▀██████
+ ██████  ██████   patronum
+ █████▀  ▀█████   collect an Instagram profile,
+ ████      ████   download its media, and analyze it.
+ █████    █████
+ ██████  ██████
+ ██████  █████▀
+ ███████████▀
+  ▀████████▀
+    ▀████▀
+       ▀
+```
+
+## What it does
+
+```mermaid
+flowchart LR
+  A[Sign in<br>local Chrome] --> B[Collect<br>posts and reels]
+  B --> C[Verify]
+  C --> D[Download<br>media]
+  D --> E[Unique<br>best copy of each]
+  E --> F[Analyze<br>vision model]
+  F -.-> G[Export<br>to a wiki]
+```
+
+- **Sign in once.** Patronum drives a real Chrome on your machine and keeps the cookies on disk. It handles authenticator codes, emailed codes and image puzzles.
+- **Collect a profile.** It reads the header, scrolls the grid, then completes every post: caption, date, likes, and every slide of a carousel.
+- **Jobs survive crashes.** Each collection is a durable job with stages. Fix what broke and resume; finished stages are not redone.
+- **A local dashboard** starts jobs, shows each stage with its log, and lets you browse the results.
+- **One command** for people and agents: `./bin/patronum`.
+
+There is no default account or client. Every collection names the handle it is for.
 
 ## Quick start
 
+You need [Bun](https://bun.sh), Go, Chrome, `ffmpeg` and `ffprobe`.
+
 ```bash
 bun install
-cp .env.example .env          # fill in QWEN_API_KEY, IG_USER, IG_PASS
+cp .env.example .env          # QWEN_API_KEY, IG_USER, IG_PASS
 ./bin/patronum status         # says what is still missing
 ./bin/patronum login          # sign in once; cookies are saved
-./bin/patronum dashboard      # http://127.0.0.1:7799 — start a collection here
+./bin/patronum dashboard      # http://127.0.0.1:7799
 ```
 
-`./bin/patronum --help` lists every command. People read [HUMANS.md](./HUMANS.md); agents start at [AGENTS.md](./AGENTS.md).
+In the dashboard: **New collection**, enter a handle, **Start collection**.
 
-## Where things are
+## The command
 
-| Place | What is in it |
+```text
+$ ./bin/patronum job ig:some_handle:1794340510
+ig:some_handle:1794340510  SUCCESS  some_handle
+Stage  done
+  preflight  done
+  scrape     done
+  verify     done
+  download   done
+  unique     done
+  analyze    idle
+```
+
+| Look (reads local files only) | |
 | --- | --- |
-| this repository | code, `node_modules`, `.env` |
-| the home folder | everything Patronum collects or saves: profiles, media, analysis, the job database, logs, the saved login |
+| `patronum status` | Is everything set up? Credentials are reported by presence, never printed. |
+| `patronum jobs` · `patronum job <id>` | Which jobs ran, and why one failed. |
+| `patronum profile <handle>` | What was collected and which stages have run. |
+| `patronum paths <handle>` | Where that profile's files are. |
+| `patronum map` | What each source folder is for. |
 
-The home folder is `~/Documents/patronum`. Set `PATRONUM_HOME` to put it somewhere else, for example a data volume on a server. `./bin/patronum paths <handle>` shows the files for one profile.
+| Do | |
+| --- | --- |
+| `patronum login` · `session` · `preflight` | Sign in, check the saved login, check the model. |
+| `patronum dashboard` | Start jobs and see results. |
+| `patronum check <area>` | Run the tests for one part of the code. |
 
-## Code map
+Add `--json` to any look command for one JSON document. `patronum commands --json` lists everything with its side effects, which is what an agent should read first. Exit codes are the same everywhere: `0` ok, `1` failed, `2` usage, `3` sign-in, `4` model.
 
-`./bin/patronum map` prints this with the file to read first in each folder.
+## Where your data goes
+
+Code stays in this repository. Everything Patronum collects or saves lives in one **home folder**:
+
+```text
+~/Documents/patronum/
+  data/chrome-profile/                  the saved Instagram login
+  data/profiles/<handle>-profile.json   posts, captions, counts
+  data/media/<handle>/                  downloaded files, one folder per post
+  data/<handle>-unique/                 the best copy of each image and video
+  data/analysis/<handle>/               what the model said about each file
+  data/dbos/                            the job database and logs
+```
+
+Set `PATRONUM_HOME` to put it somewhere else, such as a data volume on a server.
+
+## How the code is laid out
+
+Each folder does one thing. `./bin/patronum map` prints this with the file to read first.
 
 ```text
 src/sign-in      get one Instagram account logged in and prove it
-src/collect      read a profile and list every post (start at collect-profile.ts)
+src/collect      read a profile and list every post     start at collect-profile.ts
 src/saved        the signed-in account's bookmarks
 src/api-map      record which Instagram routes and page controls exist
 src/browser      open and close local Chrome safely
@@ -43,10 +130,18 @@ src/paths.ts     where every file lives on disk
 cmd/, internal/  Go: durable jobs, download, unique, analyze
 ```
 
-## Checks
+Bun and TypeScript drive the browser and the dashboard. Go runs the durable jobs (DBOS on SQLite) and the media tools.
+
+## Working on it
 
 ```bash
-./bin/patronum check                 # list the areas
-./bin/patronum check types collect   # run the tests for some of them
+./bin/patronum check                 # list the test areas
+./bin/patronum check types collect   # run some of them
 bun test src && go test ./...        # everything
 ```
+
+Tests run against a throwaway home folder, never yours. People read [HUMANS.md](./HUMANS.md); agents start at [AGENTS.md](./AGENTS.md), and there is a [skill](./.claude/skills/patronum/SKILL.md) with evals for the command.
+
+## Use it responsibly
+
+Patronum signs in as you and reads what your account can see. Collect only what you have the right to, keep to Instagram's terms, and stop when Instagram says no: the collector halts on the first rejected request and is not built to work around limits.
