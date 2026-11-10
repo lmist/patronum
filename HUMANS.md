@@ -23,47 +23,9 @@ IG_PASS=your-password
 
 Never commit `.env`. `bun run secrets:encrypt` and `bun run secrets:decrypt` keep an encrypted copy with age.
 
-## Where your data goes
+Everything Patronum collects is kept in a home folder outside the code (`~/Documents/patronum`, or `PATRONUM_HOME`), and `./bin/patronum --help` lists every command. The [README](./README.md) covers both.
 
-Everything Patronum collects or saves lives in one **home folder**, separate from the code:
-
-```text
-~/Documents/patronum/
-  data/chrome-profile/           the saved Instagram login (cookies)
-  data/profiles/<handle>-profile.json
-  data/media/<handle>/           downloaded files, one folder per post
-  data/<handle>-unique/          the best copy of each image and video
-  data/analysis/<handle>/        what the model said about each file
-  data/dbos/                     the job database and logs
-  cache/                         remembered page controls and Instagram routes
-```
-
-To keep it somewhere else, set `PATRONUM_HOME` in `.env` or the environment. On a server, point it at the data volume:
-
-```bash
-PATRONUM_HOME=/srv/patronum
-```
-
-`./bin/patronum paths <handle>` lists one profile's files and whether each exists. `data/chrome-profile/` is your login: do not delete it to fix a slow sign-in. `cache/` is safe to delete; the next run rebuilds it.
-
----
-
-## Commands
-
-`./bin/patronum --help` lists everything. The ones you will use:
-
-| Command | What it does |
-| --- | --- |
-| `./bin/patronum status` | Is everything set up? Shows the home folder, which credentials are present (never their values), tools, and whether the dashboard is running. |
-| `./bin/patronum login` | Sign in to Instagram and save the cookies. `--keep-open` leaves Chrome open so you can finish a verification by hand; close it before running anything else. `--fresh-profile` wipes the saved login first. |
-| `./bin/patronum session --check-only` | Is the saved login still good? `didLogin: false` means the cookies were reused. |
-| `./bin/patronum preflight` | Ask the model one question to prove the key, model and quota work. No browser. |
-| `./bin/patronum dashboard` | Build and open the dashboard at http://127.0.0.1:7799. |
-| `./bin/patronum jobs`, `job <id>` | List jobs, or show one job's stages and a readable error. |
-| `./bin/patronum profile <handle>` | What was collected for a profile and which later stages have run. |
-| `./bin/patronum check <area>` | Run the tests for one part of the code. |
-
-The older `bun run login`, `bun run session`, `bun run dash` and `go run ./cmd/igflow …` still work; `patronum` calls the same programs.
+`data/chrome-profile/` in the home folder is your login: do not delete it to fix a slow sign-in. `cache/` is safe to delete; the next run rebuilds it.
 
 ---
 
@@ -153,5 +115,4 @@ It records each save under `data/bookmarks/` in the home folder and stops at the
 - **Job engine:** `./bin/patronum flow doctor` must report `journalMode: wal`. Only one `run` or `resume` may hold the lock at a time; `list`, `status` and `steps` are always safe. See [durable jobs](./docs/reference/dbos-durable-workflows.md).
 - **Logs:** `data/dbos/logs/<job-id>/` per job and `data/dbos/logs/_dash/igdash.log` for the dashboard, both in the home folder. Secrets are redacted.
 - **Go debugger:** `make debug-setup` once, then `make debug-check`, `make debug-go` or `make debug-lldb`. `DEBUG_PACKAGE` and `DEBUG_TEST` pick another test.
-- **Logos and icons:** `bun run brand`; see the [brand guide](./src/dashboard/brand/README.md).
-- **Acceptance scenarios:** [dashboard scenarios](./docs/reference/dashboard-scenarios.md).
+- **Logos and icons:** `bun run brand`, then `bun run dash:build`.

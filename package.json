@@ -18,7 +18,6 @@
     "igflow": "go run ./cmd/igflow",
     "analyze-media": "go run ./cmd/iganalyze",
     "unique-media": "go run ./cmd/igunique",
-    "diagrams": "bash scripts/render-diagrams.sh",
     "secrets:decrypt": "bash scripts/secrets-decrypt.sh",
     "secrets:encrypt": "bash scripts/secrets-encrypt.sh",
     "postinstall": "node scripts/patch-stagehand-aisdk.mjs && node scripts/patch-stagehand-local-ws.mjs",
@@ -51,7 +50,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@mermaid-js/mermaid-cli": "^11.17.0",
     "@tailwindcss/vite": "4.3.3",
     "@types/bun": "latest",
     "@types/node": "^20.14.0",

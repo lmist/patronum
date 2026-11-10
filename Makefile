@@ -9,7 +9,7 @@ PREFIX ?= pt
 BEADS_VERSION ?= 1.2.1
 BEADS_REPOSITORY ?= gastownhall/beads
 
-.PHONY: all bd bootstrap formulas doctor hooks clean diagrams igflow-recovery debug-setup debug-check debug-go debug-lldb
+.PHONY: all bd bootstrap formulas doctor hooks clean igflow-recovery debug-setup debug-check debug-go debug-lldb
 
 DEBUG_PACKAGE ?= ./cmd/igunique
 DEBUG_TEST ?= ^TestSelectPostMedia$$
@@ -36,9 +36,6 @@ doctor:
 	@PATH="$(BIN):$$PATH" ./bin/bd doctor --check=conventions
 	@PATH="$(BIN):$$PATH" ./bin/bd doctor --check=pollution
 	@./scripts/check-formulas.sh
-
-diagrams:
-	@./scripts/render-diagrams.sh
 
 igflow-recovery:
 	go test -tags=recovery -count=1 -timeout 180s ./cmd/igflow ./internal/flow

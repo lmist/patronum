@@ -31,4 +31,4 @@ The [dashboard server](./src/dashboard/server.ts) controls account checks, isola
 
 Use the Vivid unity reference described in [the visual system](./DESIGN.md). Product terms and controls come from Patronum; no social, chat, billing, or medical features are inferred.
 
-The Patronum logo is the Reliquary mark from Brilliant thistle in Paper: the capped variant is primary and the pointed variant is retained as an alternate. See the [brand assets](./src/dashboard/brand/README.md).
+The Patronum logo is the Reliquary mark from Brilliant thistle in Paper: the capped variant is primary and the pointed variant is retained as an alternate. `bun run brand` regenerates the icons from `src/dashboard/brand/paper.svg`.

@@ -74,7 +74,7 @@ components:
 
 Vivid unity places clear Inter typography and white actions over a near-black canvas with blue and violet ambient light. Translucent surfaces carry that light into the workspace; their broad corners keep dense operational content calm. The visual authority is this document, implemented in the [dashboard stylesheet](./src/dashboard/web/styles.css).
 
-Collections, recovery, and reading share this material language. The [product commitments](./PRODUCT.md) preserve explicit collection identity and visible workflow outcomes; the [dashboard surface](./src/dashboard/DESIGN.md) places those behaviors in the interface.
+Collections, recovery, and reading share this material language. The [product commitments](./PRODUCT.md) preserve explicit collection identity and visible workflow outcomes.
 
 **Key Characteristics:**
 
