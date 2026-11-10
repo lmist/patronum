@@ -50,4 +50,4 @@ Icon
 .neon
 
 # macOS custom folder icons (name ends in a carriage return)
-Icon?
+Icon[!a-zA-Z0-9]
