@@ -1,0 +1,51 @@
+formula = "release"
+description = "Cut a version: notes, verify, tag. Publish is human-gated."
+version = 1
+type = "workflow"
+
+[vars.version]
+description = "Semver without the v prefix"
+required = true
+
+[[steps]]
+id = "notes"
+title = "Release notes for {{version}}"
+type = "task"
+priority = 1
+description = """
+Summarize closed beads since the last tag. Update README/CHANGELOG if those files exist.
+"""
+
+[[steps]]
+id = "verify"
+title = "Verify {{version}}"
+type = "task"
+priority = 1
+needs = ["notes"]
+description = """
+make doctor and any project tests. Red means stop.
+"""
+
+[[steps]]
+id = "tag"
+title = "Tag v{{version}}"
+type = "chore"
+priority = 1
+needs = ["verify"]
+description = """
+Create the git tag only if the user asked. Do not push tags unprompted.
+"""
+
+[[steps]]
+id = "publish"
+title = "Publish {{version}}"
+type = "task"
+priority = 1
+needs = ["tag"]
+description = """
+Human publishes (GitHub release, announce). Agents do not ship this step alone.
+"""
+
+[steps.gate]
+type = "human"
+timeout = "72h"

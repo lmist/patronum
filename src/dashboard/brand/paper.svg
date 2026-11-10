@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs><symbol id="_o1itnr0" viewBox="0 0 100 130"><path d="m5 101c6-35 15-83 38-96 17-10 34-3 42 17l-18 2 17 30-28-21c-7-1-5 10 1 20l38 73c-29-14-56-25-90-25zm63-73c-4-1-6 1-5 4 1 4 6 3 6-1z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="_o1itnr1" viewBox="0 0 70 130"><path d="m35 0 32 32v67l-32 31-32-29v-69zm0 23c-4 20-2 36-17 42 13 5 12 22 17 43 4-21 2-37 17-43-13-5-13-20-17-42z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="_o1itnr2" viewBox="0 0 70 130"><path d="m22 2h25v14l19 18v55l-34 38-29-26v-67l19-17zm13 21c-4 21-3 36-17 42 13 6 12 22 17 44 5-22 3-38 17-44-13-5-13-20-17-42z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="_o1itnr3" viewBox="0 0 70 105"><path d="m0 0h38c20 0 32 13 32 29 0 18-13 30-36 30v-16c9-1 13-7 13-13 0-7-5-11-13-11h-22l-12 8zm0 39 12-11 17 17-8 9v30l-21 21z" fill="currentColor"/></symbol></defs>
+  <rect x="0" y="0" width="1024" height="1024" fill="#111113" />
+  <g id="_o1itnr10">
+    <rect x="526" y="24" width="474" height="475" fill="#090B0C" stroke="#526071" />
+    <rect x="528" y="26" width="470" height="471" fill="none" stroke="#171C22" />
+    <g id="_o1itnr11">
+      <path d="m555 39h20" fill="none" stroke="#708AC0" stroke-width="1.5" />
+      <text x="555" y="74" font-family="Arial, Helvetica, sans-serif" font-size="34" letter-spacing="-.65" fill="#F3F3F4">
+        The Reliquary
+      </text>
+    </g>
+    <g id="_o1itnr12">
+      <rect x="552" y="102" width="149" height="159" fill="#F3F3F3" stroke="#D7DADD" />
+      <use x="596" y="127" width="61" height="111" href="#_o1itnr1" />
+      <rect x="713.5" y="101.5" width="148" height="160" fill="none" stroke="#3A475A" />
+      <rect x="715.5" y="103.5" width="144" height="156" fill="none" stroke="#141B24" />
+      <use x="756" y="127" width="61" height="111" href="#_o1itnr2" />
+    </g>
+    <g id="_o1itnr13">
+      <g font-family="Arial, Helvetica, sans-serif" font-size="14">
+        <text x="887" y="109" fill="#B9CCEC">
+          16 px
+        </text>
+        <text x="887" y="179" fill="#B9CCEC">
+          24 px
+        </text>
+        <text x="887" y="267" fill="#B9CCEC">
+          32 px
+        </text>
+      </g>
+      <use x="926" y="114" width="15" height="28" href="#_o1itnr2" />
+      <use x="921" y="183" width="26" height="49" href="#_o1itnr2" />
+      <use x="919" y="270" width="40" height="69" href="#_o1itnr2" />
+    </g>
+    <path d="m553 280h309" fill="none" stroke="#3F5068" />
+    <g id="_o1itnr14">
+      <use x="560" y="299" width="44" height="75" href="#_o1itnr2" />
+    </g>
+    <path d="m554 394h419" fill="none" stroke="#405069" />
+    <text x="554" y="428" font-family="Arial, Helvetica, sans-serif" font-size="17" fill="#BBCCE2" />
+  </g>
+</svg>

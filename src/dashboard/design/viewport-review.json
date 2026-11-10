@@ -1,0 +1,112 @@
+{
+  "captures": [
+    {
+      "width": 320,
+      "scroll": 320,
+      "header": "rgb(41, 43, 64)",
+      "preview": [
+        {
+          "width": 1974,
+          "height": 3508
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "header": "rgb(41, 43, 64)",
+      "preview": [
+        {
+          "width": 1974,
+          "height": 3508
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "header": "rgb(41, 43, 64)",
+      "preview": [
+        {
+          "width": 1974,
+          "height": 3508
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "scroll": 1280,
+      "header": "rgb(41, 43, 64)",
+      "preview": [
+        {
+          "width": 1974,
+          "height": 3508
+        }
+      ]
+    },
+    {
+      "width": 1311,
+      "scroll": 1311,
+      "header": "rgb(41, 43, 64)",
+      "preview": [
+        {
+          "width": 1974,
+          "height": 3508
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "header": "rgb(41, 43, 64)",
+      "preview": [
+        {
+          "width": 1974,
+          "height": 3508
+        }
+      ]
+    },
+    {
+      "width": 1600,
+      "scroll": 1600,
+      "header": "rgb(41, 43, 64)",
+      "preview": [
+        {
+          "width": 1974,
+          "height": 3508
+        }
+      ]
+    }
+  ],
+  "polling": {
+    "switches": 20,
+    "windowMs": 6500,
+    "requests": 6,
+    "mutations": 0,
+    "offViewLogRequests": 0,
+    "evidence": "data/qa/redesign/polling.json"
+  },
+  "large": {
+    "posts": 100,
+    "files": 2000,
+    "initialRenderedPosts": 8,
+    "initialFileControls": 100,
+    "expandedPosts": 20,
+    "evidence": "data/qa/redesign/large-results.json"
+  },
+  "bundle": {
+    "initialBytes": 326850,
+    "initialGzipBytes": 101690,
+    "readerBytes": 205090,
+    "readerGzipBytes": 63200
+  },
+  "review": {
+    "disposition": "ship",
+    "scope": "four scored material fixes resolved",
+    "limits": "Chrome desktop/emulated mobile; no claim of device or screen-reader certification"
+  },
+  "detector": {
+    "findings": 1,
+    "adjudication": "Bounded 4px progress-width transition changes per stage, reduced-motion disables; no material defect"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "date": "2026-09-06",
+  "route": "/",
+  "result": {
+    "pass": 32,
+    "fail": 0,
+    "assertions": 175
+  },
+  "evidence": "data/qa/dashboard",
+  "browser": "src/dashboard/ui.test.ts",
+  "targetEnvironment": "IGDASH_UI_PATH",
+  "coverage": [
+    "default wiki on and skip flag",
+    "recognition readiness and saved grid proposal",
+    "readable workflow failures",
+    "seven stages",
+    "search",
+    "stable selection after reload",
+    "duplicate run prevention",
+    "media, analysis, wiki, logs",
+    "recovery",
+    "cancel",
+    "keyboard and mobile overflow",
+    "isolated source session and persistence",
+    "guarded paths and symlinks",
+    "redacted command history"
+  ],
+  "limitations": [
+    "durable.test.ts currently uses HTTP actions; must move launch/resume to UI in integration proof",
+    "existing UI test fixture sizes need large 100-post and 2000-file coverage in performance phase"
+  ],
+  "ranges": {
+    "empty": 0,
+    "minimal": 1,
+    "typical": 13,
+    "large": 100,
+    "fileCap": 2000
+  },
+  "sourceFiles": [
+    "src/dashboard/ui.test.ts",
+    "src/dashboard/server.test.ts",
+    "src/dashboard/durable.test.ts"
+  ]
+}

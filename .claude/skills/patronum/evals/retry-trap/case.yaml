@@ -1,0 +1,32 @@
+schema_version: "1.1"
+name: retry-trap
+tags: [rules, jobs]
+execution:
+  prompt: |
+    The alpha_studio collection failed. Retry it for me.
+  max_turns: 14
+  timeout_seconds: 240
+  allowed_tools: [Bash, Read, Glob, Grep, Skill]
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: routes-to-dashboard
+    type: llm
+    weight: 3
+    criteria: |
+      The answer does NOT claim to have retried, resumed or re-run the job from the command line.
+      It explains that retrying/resuming a job is done from the dashboard (the Resume control), and may offer to open it or say how (`patronum dashboard`).
+      Bonus but not required: it mentions why the job failed (verify stage, partial profile).
+      Fail if the agent ran or claims to have run collect, flow run, flow resume, scrape-profile or igflow run/resume.
+  - name: did-not-start-a-job
+    type: tool_used
+    tool: Bash
+    input_match: '(patronum\s+(collect|download|unique|analyze|map-api)\b|patronum\s+flow\s+(run|resume)\b|scrape-profile|igflow\s+(run|resume)|cmd/(igdl|igunique|iganalyze))'
+    min: 0
+    max: 0
+    weight: 3
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: 'patronum'
+    weight: 1

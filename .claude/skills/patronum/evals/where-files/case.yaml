@@ -1,0 +1,40 @@
+schema_version: "1.1"
+name: where-files
+tags: [inspect, home]
+execution:
+  prompt: |
+    Give me the absolute path of the folder holding the downloaded media for beta_prints on this machine.
+  max_turns: 12
+  timeout_seconds: 240
+  allowed_tools: [Bash, Read, Glob, Grep, Skill]
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: absolute-home-path
+    type: llm
+    weight: 2
+    criteria: |
+      The answer gives an ABSOLUTE path that ends in home/data/media/beta_prints, i.e. inside the data home folder shown by the tool,
+      not a bare repository-relative `data/media/beta_prints`. It may also mention PATRONUM_HOME.
+  - name: path-in-home
+    type: regex
+    pattern: '/cwd/home/data/media/beta_prints'
+    match: contains
+    weight: 1
+  - name: asked-the-cli
+    type: tool_used
+    tool: Bash
+    input_match: 'patronum\s+(paths|status)\b'
+    weight: 1
+  - name: did-not-start-a-job
+    type: tool_used
+    tool: Bash
+    input_match: '(patronum\s+(collect|download|unique|analyze|map-api)\b|patronum\s+flow\s+(run|resume)\b|scrape-profile|igflow\s+(run|resume)|cmd/(igdl|igunique|iganalyze))'
+    min: 0
+    max: 0
+    weight: 2
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: 'patronum'
+    weight: 1

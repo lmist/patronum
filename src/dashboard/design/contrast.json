@@ -1,0 +1,12 @@
+{
+  "against": "#303039",
+  "reason": "Conservative composited upper card/ambient surface",
+  "ratios": {
+    "foreground": 11.98,
+    "muted": 6.41,
+    "success": 8.22,
+    "error": 7.21,
+    "running": 6.78,
+    "warning": 8.67
+  }
+}

@@ -1,0 +1,5 @@
+#!/bin/sh
+# patronum — the one command for this repository. See: patronum --help
+set -e
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+exec bun "$root/src/cmd/patronum.ts" "$@"

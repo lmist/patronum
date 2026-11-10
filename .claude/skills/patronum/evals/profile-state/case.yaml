@@ -1,0 +1,41 @@
+schema_version: "1.1"
+name: profile-state
+tags: [inspect]
+execution:
+  prompt: |
+    What do we have for alpha_studio so far? How many posts, is anything unfinished, and has analysis run?
+  max_turns: 12
+  timeout_seconds: 240
+  allowed_tools: [Bash, Read, Glob, Grep, Skill]
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: accurate-summary
+    type: llm
+    weight: 2
+    criteria: |
+      The answer reports 5 collected posts (and 0 reels), that 2 are unfinished (shortcodes DDD444 and EEE555), that the profile is partial,
+      and that analysis has NOT run. Saying media was downloaded and the unique step has not run is correct but optional.
+      Fail if any of these numbers or states is wrong.
+  - name: names-unfinished-posts
+    type: regex
+    pattern: 'DDD444'
+    match: contains
+    weight: 1
+  - name: ran-profile
+    type: tool_used
+    tool: Bash
+    input_match: 'patronum\s+profile\b'
+    weight: 1
+  - name: did-not-start-a-job
+    type: tool_used
+    tool: Bash
+    input_match: '(patronum\s+(collect|download|unique|analyze|map-api)\b|patronum\s+flow\s+(run|resume)\b|scrape-profile|igflow\s+(run|resume)|cmd/(igdl|igunique|iganalyze))'
+    min: 0
+    max: 0
+    weight: 2
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: 'patronum'
+    weight: 1

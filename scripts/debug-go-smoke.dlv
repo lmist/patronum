@@ -1,0 +1,7 @@
+break github.com/gts/patronum/cmd/igunique.selectPostMedia
+continue
+print *it.Shortcode
+stack 3
+clearall
+continue
+exit

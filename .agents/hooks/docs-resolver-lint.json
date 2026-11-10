@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "search_replace|Write|Edit|MultiEdit|write|str_replace",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun scripts/hooks/docs-resolver-lint.mjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun scripts/hooks/docs-resolver-lint.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun scripts/hooks/docs-resolver-lint.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun scripts/hooks/docs-resolver-lint.mjs",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

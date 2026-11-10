@@ -1,0 +1,12 @@
+{
+  "model": "DannyLuna/recaptcha-classification-57k",
+  "revision": "0c1ee9525510bdd7f9513737796d7d1ea47a6926",
+  "file": "recaptcha_classification_57k.onnx",
+  "sha256": "4092e8917ee8c2963895d66ba10a97d6ef975c468a95858a8a7bd9e70681b65d",
+  "license": "Conflicting declarations: MIT model card; AGPL-3.0 embedded ONNX metadata. Weights remain local and are not redistributed.",
+  "modelCard": "https://huggingface.co/DannyLuna/recaptcha-classification-57k/blob/0c1ee9525510bdd7f9513737796d7d1ea47a6926/README.md",
+  "referenceImplementation": "https://github.com/DannyLuna17/VisionAIRecaptchaSolver/tree/133aaa47ba28f027e0c3ffec4a8708ca3daf7bae",
+  "runtime": "ONNX Runtime CPU; no Ultralytics runtime or upstream browser solver",
+  "grids": [3],
+  "limitations": ["No local 4x4 detection", "Confidence is uncalibrated model probability", "Classification model training data may overlap public fixture dataset"]
+}

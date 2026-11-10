@@ -1,0 +1,3 @@
+[test]
+# Give each test run its own empty data home; see src/test-home.ts.
+preload = ["./src/test-home.ts"]

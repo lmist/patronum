@@ -1,0 +1,285 @@
+import { CaptchaSolveError } from "../sign-in/captcha/solver.js";
+import "dotenv/config";
+import { isAuthError } from "../sign-in/auth-check.js";
+import { getAccount } from "../sign-in/accounts.js";
+import { loginInstagram } from "../sign-in/login.js";
+import { openAuthenticatedSession } from "../sign-in/session.js";
+import {
+  HINT_LLM,
+  LlmError,
+  isLlmError,
+  pingLlm,
+} from "../llm/preflight.js";
+import { resolveChromeProfileDir } from "../browser/stagehand.js";
+import { resolveQwenApiKey, resolveQwenBaseUrl, resolveQwenModelName } from "../llm/qwen.js";
+
+/** Human- and agent-readable CLI help (also printed for unknown commands). */
+export function helpText(): string {
+  return `patronum — Instagram auth + scrape via local Stagehand
+
+USAGE
+  bun run start -- [command] [options]
+  bun run <script> -- [options]
+  bun src/cmd/cli.ts [command] [options]
+
+COMMANDS
+  help, -h, --help     Show this help
+  login                Full password (+ TOTP if configured) login; persist cookies
+  session              Open local Chrome with stored profile; login if needed
+  start                Same as session (default when no command given)
+  preflight            Ping the configured LLM (no Chrome). Exit 0 on ok, exit 4 on
+                       missing/bad key, bad model, exhausted quota, or unreachable.
+
+OPTIONS
+  --check-only         Check saved session without logging in (session/start only)
+  --fresh-profile      Wipe local Chrome profile before login (login only)
+  --keep-open          Leave visible Chrome open for manual verification (login only).
+                       Close that window before running another browser command.
+
+ENV (in .env)
+  QWEN_API_KEY         Qwen key for Stagehand LLM calls (required; or DASHSCOPE_API_KEY)
+  QWEN_MODEL           Stagehand + iganalyze model (default qwen3.8-max)
+  IG_USER / IG_PASS    Instagram credentials (required)
+  IG_TOTP_SECRET       Authenticator secret (optional, if 2FA enabled)
+  AGENTMAIL_API_KEY    Email checkpoint API key (optional)
+  AGENTMAIL_ADDRESS    Inbox receiving Instagram email codes (optional)
+  PATRONUM_CHROME_PROFILE_DIR  Optional isolated Chrome profile path
+  PATRONUM_AUTH_CACHE_DIR      Optional isolated action cache path
+  HEADLESS=true        Run Chrome headless (default: visible window)
+
+BUN SCRIPTS
+  bun run login [-- --fresh-profile]
+  bun run session
+  bun run start
+  bun run notifications
+  bun run map | bun run map:deep
+  bun run typecheck
+  bun test
+
+EXAMPLES
+  bun run login
+  bun run login -- --fresh-profile
+  bun run session
+  bun run notifications
+  bun run map:deep
+
+OUTPUT
+  JSON with ok, user, sessionId, liveUrl (local profile path), didLogin
+  Exit 0 on success; login/session exit 3 on auth failure, 1 on runtime failure.
+  preflight exits 4 on any LLM problem (missing/bad key, bad model, quota,
+  unreachable). scrape-profile follows the extended contract:
+  0 ok · 1 retryable · 2 usage · 3 auth (non-retryable) · 4 llm (non-retryable).
+
+DATA
+  .env                     Credentials (gitignored — do not commit)
+  data/chrome-profile/     Local Chrome user-data (cookies; gitignored)
+  cache/instagram-auth/    Stagehand action cache (safe to delete)
+
+See HUMANS.md for a plain-language guide.
+See AGENTS.md for the agent resolver table (intent → file → symbol).
+`;
+}
+
+function parseArgs(argv: string[]) {
+  const args = [...argv];
+  const command = args[0] && !args[0].startsWith("-") ? args.shift()! : "start";
+  let forceFreshProfile = false;
+  let keepOpen = false;
+  let checkOnly = false;
+  let wantHelp = false;
+
+  if (
+    command === "help" ||
+    command === "-h" ||
+    command === "--help" ||
+    command === "usage"
+  ) {
+    wantHelp = true;
+  }
+
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (a === "--fresh-profile" || a === "--new-context") {
+      // --new-context kept as alias for old muscle memory
+      forceFreshProfile = true;
+    } else if (a === "--check-only") {
+      checkOnly = true;
+    } else if (a === "--keep-open") {
+      keepOpen = true;
+    } else if (a === "-h" || a === "--help") {
+      wantHelp = true;
+    }
+  }
+
+  return { command, forceFreshProfile, keepOpen, checkOnly, wantHelp };
+}
+
+async function main() {
+  const { command, forceFreshProfile, keepOpen, checkOnly, wantHelp } = parseArgs(
+    process.argv.slice(2),
+  );
+
+  if (wantHelp) {
+    console.log(helpText());
+    return;
+  }
+
+  if (command === "all" || command === "concurrent") {
+    console.error(
+      "[patronum] multi-account concurrent mode was removed. Use login/session for the single account in .env",
+    );
+    process.exit(1);
+  }
+
+  if (command === "preflight") {
+    let apiKey: string;
+    try {
+      apiKey = resolveQwenApiKey(process.env);
+    } catch (err) {
+      const llm = new LlmError(
+        "missing-key",
+        err instanceof Error ? err.message : String(err),
+      );
+      console.log(
+        JSON.stringify({
+          ok: false,
+          error: "llm",
+          kind: llm.kind,
+          reason: llm.message,
+          hint: HINT_LLM,
+        }),
+      );
+      process.exit(4);
+    }
+    const modelName = resolveQwenModelName(process.env);
+    const baseUrl = resolveQwenBaseUrl(process.env);
+    const ping = await pingLlm({
+      apiKey,
+      baseUrl,
+      model: modelName,
+      timeoutMs: 10_000,
+    });
+    const payload = {
+      ok: ping.ok,
+      ...(ping.ok ? {} : { error: "llm", kind: ping.kind ?? "unreachable" }),
+      llm: {
+        model: ping.model,
+        baseUrl: ping.baseUrl,
+        status: ping.status,
+        kind: ping.kind ?? (ping.ok ? "ok" : "unreachable"),
+        reason: ping.reason,
+        latencyMs: ping.latencyMs,
+      },
+      ...(ping.ok ? {} : { hint: HINT_LLM, reason: ping.reason }),
+    };
+    // Compact: igflow classifies the last stdout JSON object. Pretty-print
+    // made lastJSONLine keep only the opening "{" and die as "no tail JSON".
+    console.log(JSON.stringify(payload));
+    process.exit(ping.ok ? 0 : 4);
+  }
+
+  if (command === "login") {
+    const account = getAccount();
+    console.log(`[patronum] command=${command} account=${account.user}`);
+    const result = await loginInstagram(account, { forceFreshProfile, keepOpen });
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          command: "login",
+          user: account.user,
+          sessionId: result.sessionId,
+          liveUrl: result.liveUrl,
+          profileDir: result.profileDir,
+          loggedInAs: result.loggedInAs,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  if (command === "session" || command === "start") {
+    const account = getAccount();
+    console.log(`[patronum] command=${command} account=${account.user}`);
+    const result = await openAuthenticatedSession(account, {
+      loginIfNeeded: !checkOnly,
+    });
+    console.log(
+      JSON.stringify(
+        {
+          ok: result.loggedIn,
+          command,
+          user: account.user,
+          sessionId: result.sessionId,
+          liveUrl: result.liveUrl,
+          profileDir: result.profileDir,
+          detail: result.detail,
+          ...(!result.loggedIn ? { error: "auth", hint: "Use Sign in or Open login browser, complete verification, close Chrome, then Check session." } : {}),
+          didLogin: result.didLogin,
+        },
+        null,
+        2,
+      ),
+    );
+    if (!result.loggedIn) process.exit(3);
+    return;
+  }
+
+  console.error(`Unknown command: ${command}\n`);
+  console.error(helpText());
+  process.exit(1);
+}
+
+/** True when this file is the process entry (Bun `import.meta.main` or Node argv). */
+function isCliEntry(): boolean {
+  if (import.meta.main === true) return true;
+  if (import.meta.main === false) return false;
+  const arg = process.argv[1];
+  if (!arg) return false;
+  return (
+    arg.endsWith("/cli.ts") ||
+    arg.endsWith("/cli.js") ||
+    arg.endsWith("src/cmd/cli.ts") ||
+    arg.endsWith("src/cmd/cli.js")
+  );
+}
+
+if (isCliEntry()) {
+  main().catch((err) => {
+    if (isLlmError(err)) {
+      console.error(`[patronum] llm failure: ${err.message}`);
+      console.log(
+        JSON.stringify({
+          ok: false,
+          error: "llm",
+          kind: err.kind,
+          reason: err.message,
+          hint: HINT_LLM,
+        }),
+      );
+      process.exit(4);
+    }
+    const reason = err instanceof Error ? err.message : String(err);
+    const automatic = err instanceof CaptchaSolveError;
+    const manual = !automatic && /captcha|puzzle|checkpoint|verification|2fa/i.test(reason);
+    console.log(JSON.stringify({
+      ok: false,
+      error: isAuthError(err) || manual || automatic ? "auth" : "runtime",
+      reason,
+      profileDir: resolveChromeProfileDir(),
+      browserOpen: process.argv.includes("--keep-open"),
+      ...(isAuthError(err) ? { state: err.state } : {}),
+      ...(manual ? { state: "checkpoint", manualRequired: true } : {}),
+      ...(automatic ? { state: "checkpoint", manualRequired: false, captcha: err.result } : {}),
+      hint: automatic
+        ? "Automatic verification stopped. Inspect the CAPTCHA diagnostics and retry after resolving the reported cause."
+        : manual
+        ? "Use Open login browser, complete verification in Chrome, close that window, then Check session."
+        : "Review the error and configuration, close any Chrome window using this profile, then retry.",
+    }));
+    if (isAuthError(err) || manual || automatic) process.exit(3);
+    process.exit(1);
+  });
+}

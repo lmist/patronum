@@ -1,0 +1,53 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+accounts.json
+data/
+*.log
+# Stagehand local action cache (rebuild with login/session; clear if IG DOM changes)
+cache/
+# Agent harness local config (may contain live API keys) — version hooks only
+.agents/*
+!.agents/hooks/
+!.agents/hooks/**
+# Local org notes (credentials) — not encrypted in secrets/
+patronum.org
+*.org
+# age private key never committed
+secrets/AGE_SECRET_KEY
+secrets/*.stderr
+# Legacy client wiki artifacts
+knowledge/clients/
+# igdash test scratch trees
+src/dashboard/.test-*
+# Popmelt design threads, dashboard screenshots, and bridge runtime state (local only)
+.popmelt/
+
+# macOS
+.DS_Store
+Icon
+
+# Repo-local beads binary (rebuild with `make bd`)
+/bin/bd
+/bin/bd.exe
+
+# Repo-local Go debugger (make debug-setup)
+/bin/dlv
+/bin/dlv.exe
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+.beads.gate.lock
+*.gate.lock
+
+# Local reference clones of upstream projects (study only, never committed)
+.reference/
+.neon
+
+# macOS custom folder icons (name ends in a carriage return)
+Icon?

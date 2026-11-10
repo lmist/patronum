@@ -1,0 +1,35 @@
+schema_version: "1.1"
+name: which-tests
+tags: [checks]
+execution:
+  prompt: |
+    I just edited src/collect/read-post.ts. Which command runs the tests that cover it? Tell me the command; do not run the tests.
+  max_turns: 8
+  timeout_seconds: 240
+  allowed_tools: [Bash, Read, Glob, Grep, Skill]
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: names-check-collect
+    type: llm
+    weight: 2
+    criteria: |
+      The answer gives `./bin/patronum check collect` (or `patronum check collect`, optionally with `types` as well) as the command.
+      Giving only a raw `bun test ...` path list without the patronum check command is a fail.
+  - name: check-collect
+    type: regex
+    pattern: 'patronum\s+check\s+(types\s+)?collect'
+    match: contains
+    weight: 1
+  - name: did-not-run-tests
+    type: tool_used
+    tool: Bash
+    input_match: '(patronum\s+check\s+\w|bun\s+test)'
+    min: 0
+    max: 0
+    weight: 1
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: 'patronum'
+    weight: 1
