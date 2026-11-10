@@ -9,7 +9,7 @@ const dlv = join(root, "bin", process.platform === "win32" ? "dlv.exe" : "dlv");
 const mode = process.argv[2] ?? "check";
 const pkg = process.argv[3] ?? "./cmd/igunique";
 const test = process.argv[4] ?? "^TestSelectPostMedia$";
-const symbol = "github.com/gts/patronum/cmd/igunique.selectPostMedia";
+const symbol = "github.com/lmist/patronum/cmd/igunique.selectPostMedia";
 const outputRoot = join(root, "data", "debug", "go");
 const timeoutMs = Number(process.env.DEBUG_TIMEOUT_MS ?? 45000);
 

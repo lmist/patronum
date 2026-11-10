@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/dbos-inc/dbos-transact-golang/dbos"
-	"github.com/gts/patronum/internal/flow"
+	"github.com/lmist/patronum/internal/flow"
 )
 
 const (

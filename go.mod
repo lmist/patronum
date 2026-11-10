@@ -1,4 +1,4 @@
-module github.com/gts/patronum
+module github.com/lmist/patronum
 
 go 1.25.0
 

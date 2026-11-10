@@ -41,8 +41,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gts/patronum/internal/home"
-	"github.com/gts/patronum/internal/videoprobe"
+	"github.com/lmist/patronum/internal/home"
+	"github.com/lmist/patronum/internal/videoprobe"
 )
 
 const (

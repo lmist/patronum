@@ -1,4 +1,4 @@
-break github.com/gts/patronum/cmd/igunique.selectPostMedia
+break github.com/lmist/patronum/cmd/igunique.selectPostMedia
 continue
 print *it.Shortcode
 stack 3

@@ -16,7 +16,7 @@ import (
 
 	"github.com/dbos-inc/dbos-transact-golang/dbos"
 	_ "github.com/dbos-inc/dbos-transact-golang/dbos/driver/sqlite"
-	"github.com/gts/patronum/internal/home"
+	"github.com/lmist/patronum/internal/home"
 )
 
 // Application identity. Kept as constants because DBOS pins ownership by

@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gts/patronum/internal/home"
-	"github.com/gts/patronum/internal/igdl"
+	"github.com/lmist/patronum/internal/home"
+	"github.com/lmist/patronum/internal/igdl"
 )
 
 func main() {
