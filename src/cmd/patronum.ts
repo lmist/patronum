@@ -18,6 +18,7 @@ import { DATA_HOME, HOME_ENV, REPO_ROOT, defaultDataHome, inHome, inRepo, layout
 import { needsDetailEnrichment } from "../collect/resume.js";
 import { CHECKS, COMMANDS, EXIT_CODES, MODULES, type CommandEntry } from "./patronum-catalogue.js";
 import { logoWith } from "./patronum-logo.js";
+import { installSkill, removeSkill, skillGuide, skillStatus, type SkillScope } from "./patronum-skill.js";
 
 const HANDLE = /^[A-Za-z0-9._]{1,40}$/;
 const DASHBOARD_URL = `http://127.0.0.1:${process.env.IGDASH_PORT ?? 7799}`;
@@ -26,15 +27,17 @@ class UsageError extends Error {
   constructor(message: string, readonly hint?: string) { super(message); }
 }
 
-type Flags = { json: boolean; help: boolean; values: Record<string, string>; rest: string[] };
+type Flags = { json: boolean; help: boolean; user: boolean; force: boolean; values: Record<string, string>; rest: string[] };
 
 /** Split inspect-command arguments into --json, --help, --name value pairs and the rest. */
 export function parseFlags(argv: string[], valued: string[] = []): Flags {
-  const flags: Flags = { json: false, help: false, values: {}, rest: [] };
+  const flags: Flags = { json: false, help: false, user: false, force: false, values: {}, rest: [] };
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index]!;
     if (arg === "--json") flags.json = true;
     else if (arg === "--help" || arg === "-h") flags.help = true;
+    else if (arg === "--user") flags.user = true;
+    else if (arg === "--force") flags.force = true;
     else if (arg.startsWith("--") && valued.includes(arg.slice(2).split("=")[0]!)) {
       const [name, inline] = arg.slice(2).split("=", 2) as [string, string | undefined];
       const value = inline ?? argv[++index];
@@ -303,6 +306,32 @@ async function showJob(flags: Flags): Promise<void> {
   } finally { db.close(); }
 }
 
+function showSkill(flags: Flags): void {
+  const [action = "status"] = flags.rest;
+  const scopes: SkillScope[] = flags.user ? ["user"] : ["project"];
+  if (action === "show") {
+    print(flags, { ok: true, guide: skillGuide() }, skillGuide);
+    return;
+  }
+  if (action === "setup" || action === "remove") {
+    const results = scopes.map((scope) => (action === "setup" ? installSkill(scope, flags.force) : removeSkill(scope)));
+    const blocked = results.filter((result) => result.state === "foreign");
+    print(flags, { ok: blocked.length === 0, action, results }, () => results.map((result) =>
+      result.state === "foreign"
+        ? `left alone  ${result.path}\n            it was not written by patronum${action === "setup" ? "; add --force to replace it" : ""}`
+        : `${action === "setup" ? "installed " : "removed   "}  ${result.path}`).join("\n"));
+    if (blocked.length) process.exitCode = 1;
+    return;
+  }
+  if (action !== "status") throw new UsageError(`unknown skill action "${action}"`, "use: patronum skill show | status | setup | remove");
+  const installs = skillStatus();
+  print(flags, { ok: true, installs }, () => [
+    table([["WHERE", "STATE", "PATH"], ...installs.map((install) => [install.scope, install.state, install.path])]),
+    "",
+    "show    print the guide          setup   install the stub (--user for ~/.claude)          remove  take it away",
+  ].join("\n"));
+}
+
 // ——— run commands ———
 
 function program(argv: string[]): string[] {
@@ -370,6 +399,7 @@ export async function main(argv: string[]): Promise<number> {
       case "profile": showProfile(flags); break;
       case "jobs": await showJobs(flags); break;
       case "job": await showJob(flags); break;
+      case "skill": showSkill(flags); break;
       case "check": return await runChecks(flags);
     }
     return Number(process.exitCode ?? 0);

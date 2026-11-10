@@ -14,7 +14,7 @@ mkdir -p bin node_modules
 cp "$repo/bin/patronum" bin/patronum
 cp "$repo/package.json" "$repo/tsconfig.json" "$repo/README.md" "$repo/HUMANS.md" "$repo/AGENTS.md" "$repo/CLAUDE.md" .
 # Source without tests, the web UI or build output.
-(cd "$repo" && find src -type f \( -name '*.ts' -o -name '*.json' \) \
+(cd "$repo" && find src -type f \( -name '*.ts' -o -name '*.json' -o -name '*.md' \) \
   ! -name '*.test.ts' ! -path 'src/dashboard/web/*' ! -path 'src/dashboard/dist/*' ! -path 'src/dashboard/.test-*' -print) |
   while IFS= read -r file; do mkdir -p "$(dirname "$file")"; cp "$repo/$file" "$file"; done
 # The inspect commands need only these two packages.

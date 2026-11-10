@@ -79,6 +79,12 @@ export const COMMANDS: CommandEntry[] = [
     examples: ["patronum job ig:some_handle:1794331812 --json"],
   },
   {
+    name: "skill", kind: "inspect", changesState: true,
+    summary: "The guide agents follow for this command. show prints it; setup installs a short SKILL.md that points agents at it.",
+    usage: "patronum skill [show | status | setup | remove] [--user] [--force] [--json]",
+    examples: ["patronum skill show", "patronum skill status", "patronum skill setup", "patronum skill setup --user"],
+  },
+  {
     name: "check", kind: "run",
     summary: "Run the tests that cover one part of the code. With no area, list the areas.",
     usage: "patronum check [<area>...] [--json]",

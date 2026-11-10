@@ -1,6 +1,6 @@
 # Evals for the patronum skill
 
-Six cases check that an agent with this skill uses `./bin/patronum` correctly: readiness, diagnosing a failed job, summarising a profile, finding files, choosing tests, and refusing to retry a job from the command line.
+`SKILL.md` here is a stub written by `./bin/patronum skill setup`; the guide itself is `src/cmd/patronum-skill.md`, printed by `./bin/patronum skill show`. Six cases check that an agent given the stub uses `./bin/patronum` correctly: readiness, diagnosing a failed job, summarising a profile, finding files, choosing tests, and refusing to retry a job from the command line.
 
 ```bash
 claude plugin eval .claude/skills/patronum --scaffold --allow-tools Bash --no-publish -j 4 --threshold 0.8

@@ -87,6 +87,7 @@ Stage  done
 | `patronum profile <handle>` | What was collected and which stages have run. |
 | `patronum paths <handle>` | Where that profile's files are. |
 | `patronum map` | What each source folder is for. |
+| `patronum skill show` | The guide agents follow for this command. |
 
 | Do | |
 | --- | --- |
@@ -140,7 +141,9 @@ Bun and TypeScript drive the browser and the dashboard. Go runs the durable jobs
 bun test src && go test ./...        # everything
 ```
 
-Tests run against a throwaway home folder, never yours. People read [HUMANS.md](./HUMANS.md); agents start at [AGENTS.md](./AGENTS.md), and there is a [skill](./.claude/skills/patronum/SKILL.md) with evals for the command.
+Tests run against a throwaway home folder, never yours. People read [HUMANS.md](./HUMANS.md); agents start at [AGENTS.md](./AGENTS.md).
+
+The agent skill ships inside the command, so it always matches the version you have: `./bin/patronum skill show` prints the guide, and `./bin/patronum skill setup` installs a short `SKILL.md` that points agents at it (`--user` for `~/.claude`). It has [evals](./.claude/skills/patronum/evals/README.md).
 
 ## Use it responsibly
 

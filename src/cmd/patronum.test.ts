@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { REPO_ROOT } from "../paths.js";
 import { CHECKS, COMMANDS, MODULES } from "./patronum-catalogue.js";
 import { LOGO } from "./patronum-logo.js";
 import { overview, parseFlags, suggest } from "./patronum.js";
+import { skillGuide, skillStatus, skillStub, skillTarget } from "./patronum-skill.js";
 
 const CLI = join(REPO_ROOT, "src/cmd/patronum.ts");
 
@@ -53,6 +54,30 @@ describe("patronum catalogue", () => {
         for (const part of argv.filter((value) => value.startsWith("src/"))) expect(existsSync(join(REPO_ROOT, part))).toBe(true);
       }
     }
+  });
+});
+
+describe("patronum skill", () => {
+  it("only names commands that exist", () => {
+    const names = new Set(COMMANDS.map((command) => command.name));
+    const mentioned = [...skillGuide().matchAll(/\.\/bin\/patronum ([a-z][a-z-]*)/g)].map((match) => match[1]!);
+    expect(mentioned.length).toBeGreaterThan(8);
+    for (const name of mentioned) expect(names.has(name)).toBe(true);
+  });
+
+  it("keeps the checked-in SKILL.md equal to the stub the command writes", () => {
+    const { path, command } = skillTarget("project");
+    expect(readFileSync(path, "utf8")).toBe(skillStub(command));
+    expect(skillStub(command)).toContain("./bin/patronum skill show");
+    expect(skillStatus().find((install) => install.scope === "project")?.state).toBe("current");
+  });
+
+  it("prints the guide and reports where the stub is installed", async () => {
+    const shown = await run("skill", "show");
+    expect(shown.stdout).toContain("Jobs go through the dashboard");
+    const status = JSON.parse((await run("skill", "status", "--json")).stdout);
+    expect(status.installs.map((install: { scope: string }) => install.scope)).toEqual(["project", "user"]);
+    expect((await run("skill", "nope", "--json")).exitCode).toBe(2);
   });
 });
 
