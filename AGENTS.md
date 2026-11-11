@@ -46,7 +46,7 @@ Rules that keep it readable:
 ## Data and credentials
 
 - **Home.** Collected data, the job database, logs, the saved login and caches live in the home folder, not the repository: `PATRONUM_HOME`, default `~/Documents/patronum`. Paths such as `data/…` and `cache/…` below are inside it. The dashboard passes `PATRONUM_HOME` to every child. `IGDASH_ROOT` and `IGFLOW_REPO_ROOT` relocate code and data together and exist for tests.
-- **Credentials.** `.env` holds `IG_USER`, `IG_PASS`, optional `IG_TOTP_SECRET`, `QWEN_API_KEY` (aliases `DASHSCOPE_API_KEY`, `ALIBABA_API_KEY`), and `AGENTMAIL_API_KEY` + `AGENTMAIL_ADDRESS` for emailed codes. Inspect presence, never print values, never commit them.
+- **Credentials.** `.env` holds `IG_USER`, `IG_PASS`, optional `IG_TOTP_SECRET`, `LLM_API_KEY`, `LLM_BASE_URL` and `LLM_MODEL` (or one model per role: `LLM_MODEL_BROWSER`, `LLM_MODEL_VISION`, `LLM_MODEL_VIDEO`; `LLM_VIDEO_FORMAT` says how video is attached; the older `QWEN_API_KEY`, `QWEN_BASE_URL`, `QWEN_MODEL` still work), and `AGENTMAIL_API_KEY` + `AGENTMAIL_ADDRESS` for emailed codes. Inspect presence, never print values, never commit them.
 - **Cookies.** `data/chrome-profile/` is the saved login. Do not delete it to fix a slow sign-in; `--fresh-profile` is the deliberate reset. One browser may use it at a time.
 - **Caches.** `cache/instagram-auth/` (login controls), `cache/instagram-ui-map.json` (profile controls) and `cache/instagram-api-map.json` (routes) are independent of cookies and safe to rebuild.
 - **Client scope.** Every collection names its handle. Never invent a default client or reuse another client's handle.

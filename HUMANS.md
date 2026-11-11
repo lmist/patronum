@@ -11,7 +11,9 @@ Patronum signs one Instagram account in on a **local Chrome**, keeps the cookies
 3. `cp .env.example .env` and fill in:
 
 ```bash
-QWEN_API_KEY=sk-sp-...
+LLM_API_KEY=...            your model endpoint: any OpenAI-compatible API or router
+LLM_BASE_URL=https://.../v1
+LLM_MODEL=...              or one per role; see .env.example
 IG_USER=you@example.com
 IG_PASS=your-password
 # IG_TOTP_SECRET=...       only if the account uses an authenticator app
@@ -53,7 +55,7 @@ Useful to know:
 | Problem | What you see | Fix, then Resume |
 | --- | --- | --- |
 | Instagram not signed in | error starts with `auth:` | `./bin/patronum login` |
-| Model unavailable | error starts with `llm:` | fix `QWEN_API_KEY` or the plan; `./bin/patronum preflight` |
+| Model unavailable | error starts with `llm:` | `./bin/patronum preflight` names the role and the reason; fix `LLM_API_KEY`, `LLM_BASE_URL` or the model names |
 | Missing credentials | `missing env: IG_USER` | add them to `.env` |
 
 ### Exit codes

@@ -60,8 +60,9 @@ You need [Bun](https://bun.sh), Go, Chrome, `ffmpeg` and `ffprobe`.
 git clone https://github.com/lmist/patronum.git
 cd patronum
 bun install
-cp .env.example .env          # fill in QWEN_API_KEY, IG_USER, IG_PASS; the rest is optional
+cp .env.example .env          # fill in LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, IG_USER, IG_PASS
 ./bin/patronum status         # says what is still missing
+./bin/patronum preflight      # proves the model works: text, an image and a short video
 ./bin/patronum login          # sign in once; cookies are saved
 ./bin/patronum dashboard      # http://127.0.0.1:7799
 ```

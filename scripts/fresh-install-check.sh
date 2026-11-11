@@ -22,7 +22,7 @@ failures=()
 passes=0
 
 # A new user has none of these.
-unset QWEN_API_KEY DASHSCOPE_API_KEY ALIBABA_API_KEY IG_USER IG_PASS IG_PASSWORD IG_TOTP_SECRET \
+unset LLM_API_KEY LLM_BASE_URL LLM_MODEL LLM_MODEL_BROWSER LLM_MODEL_VISION LLM_MODEL_VIDEO LLM_VIDEO_FORMAT QWEN_API_KEY DASHSCOPE_API_KEY ALIBABA_API_KEY IG_USER IG_PASS IG_PASSWORD IG_TOTP_SECRET \
   INSTAGRAM_USER INSTAGRAM_PASS INSTAGRAM_TOTP_SECRET AGENTMAIL_API_KEY AGENTMAIL_ADDRESS \
   IGDASH_ROOT IGDASH_DB IGFLOW_REPO_ROOT PATRONUM_CHROME_PROFILE_DIR DBOS_SYSTEM_DATABASE_URL
 export PATRONUM_HOME="$WORK/home" IGDASH_PORT="$PORT"
@@ -60,6 +60,7 @@ echo "README and .env.example"
 check "README quick start begins with git clone" grep -q 'git clone https://github.com/lmist/patronum.git' README.md
 check "README quick start enters the folder" grep -qE '^cd patronum' README.md
 check "README tells contributors about direnv allow" grep -q 'direnv allow' README.md
+check ".env.example offers the model endpoint and per-role models" bash -c "grep -q '^LLM_API_KEY=' .env.example && grep -q '^LLM_BASE_URL=' .env.example && grep -q 'LLM_MODEL_VIDEO' .env.example && grep -q 'LLM_VIDEO_FORMAT' .env.example"
 check ".env.example marks the AgentMail keys optional" bash -c "grep -B3 '^#* *AGENTMAIL_ADDRESS=' .env.example | grep -qi optional"
 
 echo "status"
@@ -69,7 +70,7 @@ run p status --json
 [[ "$(jq -r '.home.path' <<<"$out")" == "$PATRONUM_HOME" ]] && pass "status uses the throwaway home" || fail "status uses the throwaway home" "$(jq -r '.home.path' <<<"$out")"
 jq -e '.tools | has("bd")' <<<"$out" >/dev/null && pass "status still reports tools.bd" || fail "status still reports tools.bd"
 if jq -r '.next[]' <<<"$out" | grep -qiE '\bbd\b|beads'; then fail "status next does not mention bd" "$(jq -c '.next' <<<"$out")"; else pass "status next does not mention bd"; fi
-jq -r '.next[]' <<<"$out" | grep -q 'QWEN_API_KEY' && pass "status next names the missing model key" || fail "status next names the missing model key"
+jq -r '.next[]' <<<"$out" | grep -q 'LLM_API_KEY' && pass "status next names the missing model key" || fail "status next names the missing model key"
 
 echo "commands"
 run p commands; listing="$out"
@@ -110,6 +111,18 @@ done
 echo "exit codes with nothing set up"
 run p preflight
 [[ $code -eq 4 ]] && pass "preflight exits 4 without a model key" || fail "preflight exits 4 without a model key" "exit $code"
+[[ "$(grep -E '^\{' <<<"$out" | tail -1 | jq -r '.kind')" == missing-key ]] && pass "preflight says the key is missing" || fail "preflight says the key is missing" "$out"
+(
+  # The old Qwen names still select the key, endpoint and model. Port 9 is closed: no request leaves the machine.
+  export QWEN_API_KEY=k QWEN_BASE_URL=http://127.0.0.1:9/v1 QWEN_MODEL=old-model
+  legacy="$(p preflight 2>/dev/null | grep -E '^\{' | tail -1)"
+  [[ "$(jq -r '[.roles.browser.model, .roles.video.model, .roles.browser.baseUrl, .videoFormat] | join(" ")' <<<"$legacy")" == "openai/old-model openai/old-model http://127.0.0.1:9/v1 file" ]]
+) && pass "QWEN_* settings still work when LLM_* is unset" || fail "QWEN_* settings still work when LLM_* is unset"
+(
+  export LLM_API_KEY=k LLM_BASE_URL=http://127.0.0.1:9/v1 LLM_MODEL=one LLM_MODEL_VIDEO=two QWEN_MODEL=old-model
+  roles="$(p preflight 2>/dev/null | grep -E '^\{' | tail -1)"
+  [[ "$(jq -r '[.roles.browser.model, .roles.vision.model, .roles.video.model] | join(" ")' <<<"$roles")" == "openai/one openai/one openai/two" ]]
+) && pass "LLM_MODEL_<ROLE> overrides LLM_MODEL, which overrides QWEN_MODEL" || fail "LLM_MODEL_<ROLE> overrides LLM_MODEL, which overrides QWEN_MODEL"
 run p session
 [[ $code -eq 3 ]] && pass "session exits 3 without Instagram credentials" || fail "session exits 3 without Instagram credentials" "exit $code"
 json="$(grep -E '^\{' <<<"$out" | tail -1)"
@@ -149,7 +162,7 @@ done
 job="$(p job "$id" --json 2>/dev/null)"
 [[ "$status" == ERROR && "$(jq -r '.currentStage' <<<"$job")" == preflight ]] && pass "the job fails at preflight" || fail "the job fails at preflight" "status=$status stage=$(jq -r '.currentStage' <<<"$job" 2>/dev/null)"
 error="$(jq -r '.error // ""' <<<"$job")"
-[[ "$error" == *IG_USER* && "$error" == *QWEN_API_KEY* ]] && pass "the job error names the missing variables" || fail "the job error names the missing variables" "$error"
+[[ "$error" == *IG_USER* && "$error" == *LLM_API_KEY* ]] && pass "the job error names the missing variables" || fail "the job error names the missing variables" "$error"
 if grep -qE 'igflow|bun run' <<<"$error"; then fail "the job error uses no internal names" "$error"; else pass "the job error uses no internal names"; fi
 grep -qi 'dashboard' <<<"$error" && pass "the job error points at the dashboard" || fail "the job error points at the dashboard" "$error"
 [[ "$(jq -c '[.stages[].name]' <<<"$job")" == '["preflight","scrape","verify","download","unique","analyze"]' ]] && pass "the job view lists the six stages" || fail "the job view lists the six stages" "$(jq -c '[.stages[].name]' <<<"$job")"
