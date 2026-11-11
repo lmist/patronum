@@ -247,7 +247,7 @@ export const CHECKS: CheckEntry[] = [
   { area: "export", covers: "wiki export", commands: [["bun", "test", "src/export"]] },
   { area: "cli", covers: "the patronum and auth commands", commands: [["bun", "test", "src/cmd/cli.test.ts", "src/cmd/patronum.test.ts"]] },
   { area: "dashboard", covers: "dashboard server routes, coverage, results, a full fixture job (not the browser UI test)",
-    commands: [["bun", "test", "src/dashboard/server.test.ts", "src/dashboard/coverage.test.ts", "src/dashboard/results.test.ts", "src/dashboard/durable.test.ts"]] },
+    commands: [["bun", "test", "src/dashboard/files.test.ts", "src/dashboard/server.test.ts", "src/dashboard/coverage.test.ts", "src/dashboard/results.test.ts", "src/dashboard/durable.test.ts"]] },
   { area: "dashboard-ui", covers: "the dashboard in a real browser; needs agent-browser and a fresh build",
     commands: [["bun", "run", "dash:build"], ["bun", "test", "src/dashboard/ui.test.ts"]] },
   { area: "go", covers: "job engine, download, unique, analyze, video probing",

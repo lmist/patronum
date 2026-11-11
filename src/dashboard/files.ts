@@ -69,7 +69,9 @@ export function allowedArtifact(raw: string): string | null {
   const allowed = (p: string) => /^(?:data\/(?:media|analysis|knowledge|profiles|dbos\/logs|captcha\/(?:captures|diagnostics))\/|data\/[^/]+-unique(?:\/|$)|knowledge\/clients\/)/.test(p);
   if (!allowed(rel)) return null;
   if (existsSync(abs)) {
-    try { if (!allowed(relative(HOME, realpathSync(abs)))) return null; } catch { return null; }
+    // Compare real path with real path: the home itself may be reached
+    // through a symlink (/tmp on macOS, a mounted data volume).
+    try { if (!allowed(relative(realpathSync(HOME), realpathSync(abs)))) return null; } catch { return null; }
   }
   return abs;
 }
