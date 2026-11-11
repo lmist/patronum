@@ -129,7 +129,7 @@ EXIT CODES
   3  auth — Instagram not authenticated (login/totp/checkpoint or login wall);
         non-retryable; no profile JSON is written. Run: patronum login
   4  llm — Qwen/LLM missing, key rejected, model absent, or quota exhausted;
-        non-retryable. Set QWEN_API_KEY / DASHSCOPE_API_KEY or top up the plan.
+        non-retryable. Run: patronum preflight
 `;
 }
 

@@ -17,6 +17,8 @@ import {
   resolveQwenModelName,
   QWEN_BASE_URL_DEFAULT,
   QWEN_MODEL_DEFAULT,
+  resolveModelId,
+  resolveVideoFormat,
 } from "../llm/qwen.js";
 
 import { DATA_HOME, REPO_ROOT } from "../paths.js";
@@ -28,7 +30,9 @@ function withEnv(
   fn: () => void,
 ): void {
   const prev: Record<string, string | undefined> = {};
-  for (const [k, v] of Object.entries(patch)) {
+  // The LLM_* names win over QWEN_*: clear any from the developer's .env first.
+  const cleared = Object.fromEntries(["LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL", "LLM_MODEL_BROWSER", "LLM_MODEL_VISION", "LLM_MODEL_VIDEO", "LLM_VIDEO_FORMAT"].map((k) => [k, undefined]));
+  for (const [k, v] of Object.entries({ ...cleared, ...patch })) {
     prev[k] = process.env[k];
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
@@ -150,6 +154,23 @@ describe("Stagehand Qwen factory", () => {
         }),
       /QWEN_API_KEY/,
     );
+  });
+
+  it("LLM_* settings win over QWEN_*, with one model per role", () => {
+    const env = {
+      LLM_API_KEY: "router-key", QWEN_API_KEY: "old-key",
+      LLM_BASE_URL: "https://router.example/v1", QWEN_BASE_URL: "https://old.example/v1",
+      LLM_MODEL: "claude/claude-haiku-5-5", LLM_MODEL_VIDEO: "openrouter/google/gemini-3.8-flash", QWEN_MODEL: "qwen3.8-max",
+    };
+    assert.equal(resolveQwenApiKey(env), "router-key");
+    assert.equal(resolveQwenBaseUrl(env), "https://router.example/v1");
+    assert.equal(resolveQwenModelName(env), "openai/claude/claude-haiku-5-5");
+    assert.equal(resolveModelId("vision", env), "claude/claude-haiku-5-5");
+    assert.equal(resolveModelId("video", env), "openrouter/google/gemini-3.8-flash");
+    assert.equal(resolveVideoFormat(env), "file");
+    assert.equal(resolveVideoFormat({ QWEN_API_KEY: "k" }), "video_url");
+    assert.equal(resolveVideoFormat({ ...env, LLM_VIDEO_FORMAT: "image_url" }), "image_url");
+    assert.throws(() => resolveVideoFormat({ LLM_VIDEO_FORMAT: "gif" }), /LLM_VIDEO_FORMAT/);
   });
 
   it("resolveQwenModelName prefixes openai/ and honors QWEN_MODEL", () => {

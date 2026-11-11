@@ -67,7 +67,7 @@ export function passthroughIgflowEnv(): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(process.env)) {
     if (v == null) continue;
-    if (k.startsWith("IGFLOW_") || k === "QWEN_API_KEY" || k === "DASHSCOPE_API_KEY" ||
+    if (k.startsWith("IGFLOW_") || k.startsWith("LLM_") || k === "QWEN_API_KEY" || k === "DASHSCOPE_API_KEY" ||
         k === "IG_USER" || k === "IG_PASS" || k === "IG_TOTP_SECRET" ||
         k === "HEADLESS" || k === "PATH" || k === "HOME") {
       out[k] = v;

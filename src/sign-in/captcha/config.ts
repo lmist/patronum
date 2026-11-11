@@ -1,7 +1,7 @@
 import { access, constants } from "node:fs/promises";
 import { inHome } from "../../paths.js";
 import { visionEndpoint, type VisionConfig } from "./vision.js";
-import { resolveQwenApiKey, resolveQwenBaseUrl, resolveQwenModelName } from "../../llm/qwen.js";
+import { resolveModelId, resolveQwenApiKey, resolveQwenBaseUrl } from "../../llm/qwen.js";
 
 type Environment = Record<string, string | undefined>;
 export function localConfig(env: Environment = process.env) {
@@ -11,7 +11,7 @@ export function visionConfig(env: Environment = process.env): VisionConfig {
   if (hasCustomVisionConfig(env)) return { baseUrl: env.CAPTCHA_VISION_BASE_URL || "", apiKey: env.CAPTCHA_VISION_API_KEY || "", model: env.CAPTCHA_VISION_MODEL || "" };
   let apiKey = "";
   try { apiKey = resolveQwenApiKey(env); } catch {}
-  return { baseUrl: resolveQwenBaseUrl(env), apiKey, model: resolveQwenModelName(env).replace(/^openai\//, "") };
+  return { baseUrl: resolveQwenBaseUrl(env), apiKey, model: resolveModelId("vision", env as NodeJS.ProcessEnv) };
 }
 function hasCustomVisionConfig(env: Environment): boolean {
   return [env.CAPTCHA_VISION_BASE_URL, env.CAPTCHA_VISION_API_KEY, env.CAPTCHA_VISION_MODEL].some(value => value !== undefined);

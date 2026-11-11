@@ -81,7 +81,7 @@ describe("CLI help", () => {
   it("preflight exits 4 with error:llm when QWEN_API_KEY is unset", () => {
     let code = 0;
     let combined = "";
-    const env = { ...process.env, QWEN_API_KEY: "", DASHSCOPE_API_KEY: "", ALIBABA_API_KEY: "" };
+    const env = { ...process.env, LLM_API_KEY: "", QWEN_API_KEY: "", DASHSCOPE_API_KEY: "", ALIBABA_API_KEY: "" };
     try {
       execFileSync("bun", ["src/cmd/cli.ts", "preflight"], {
         cwd: root,

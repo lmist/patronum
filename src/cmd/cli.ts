@@ -11,7 +11,7 @@ import {
   pingLlm,
 } from "../llm/preflight.js";
 import { resolveChromeProfileDir } from "../browser/stagehand.js";
-import { resolveQwenApiKey, resolveQwenBaseUrl, resolveQwenModelName } from "../llm/qwen.js";
+import { MODEL_ROLES, resolveQwenApiKey, resolveQwenBaseUrl, resolveQwenModelName, resolveVideoFormat, type ModelRole } from "../llm/qwen.js";
 
 /** Human- and agent-readable CLI help (also printed for unknown commands). */
 export function helpText(): string {
@@ -27,7 +27,8 @@ COMMANDS
   login                Full password (+ TOTP if configured) login; persist cookies
   session              Open local Chrome with stored profile; login if needed
   start                Same as session (default when no command given)
-  preflight            Ping the configured LLM (no Chrome). Exit 0 on ok, exit 4 on
+  preflight            Check each model role (no Chrome): browser with text, vision
+                       with an image, video with a short video. Exit 0 on ok, exit 4 on
                        missing/bad key, bad model, exhausted quota, or unreachable.
 
 OPTIONS
@@ -37,8 +38,13 @@ OPTIONS
                        Close that window before running another browser command.
 
 ENV (in .env)
-  QWEN_API_KEY         Qwen key for Stagehand LLM calls (required; or DASHSCOPE_API_KEY)
-  QWEN_MODEL           Stagehand + iganalyze model (default qwen3.8-max)
+  LLM_API_KEY          Key for an OpenAI-compatible endpoint (required; or QWEN_API_KEY)
+  LLM_BASE_URL         That endpoint (or QWEN_BASE_URL; default: Qwen Token Plan)
+  LLM_MODEL            Model for every role (or QWEN_MODEL; default qwen3.8-max)
+  LLM_MODEL_BROWSER    Model that drives Chrome: text, structured output
+  LLM_MODEL_VISION     Model that reads image puzzles: image input
+  LLM_MODEL_VIDEO      Model that analyzes media: image and video input
+  LLM_VIDEO_FORMAT     How video is attached: video_url (Qwen), file, image_url
   IG_USER / IG_PASS    Instagram credentials (required)
   IG_TOTP_SECRET       Authenticator secret (optional, if 2FA enabled)
   AGENTMAIL_API_KEY    Email checkpoint API key (optional)
@@ -141,31 +147,39 @@ async function main() {
       );
       process.exit(4);
     }
-    const modelName = resolveQwenModelName(process.env);
     const baseUrl = resolveQwenBaseUrl(process.env);
-    const ping = await pingLlm({
-      apiKey,
-      baseUrl,
-      model: modelName,
-      timeoutMs: 10_000,
+    const videoFormat = resolveVideoFormat(process.env);
+    const probes = { browser: "text", vision: "image", video: "video" } as const;
+    // Roles that share a model are still checked separately: each sends different input.
+    const results = await Promise.all(MODEL_ROLES.map(async (role: ModelRole) => {
+      const ping = await pingLlm({
+        apiKey, baseUrl, model: resolveQwenModelName(process.env, role),
+        probe: probes[role], videoFormat, timeoutMs: role === "browser" ? 10_000 : 60_000,
+      });
+      return { role, ping };
+    }));
+    const describe = ({ ping }: (typeof results)[number]) => ({
+      model: ping.model,
+      baseUrl: ping.baseUrl,
+      status: ping.status,
+      kind: ping.kind ?? (ping.ok ? "ok" : "unreachable"),
+      reason: ping.reason,
+      latencyMs: ping.latencyMs,
     });
+    const failed = results.find((result) => !result.ping.ok);
     const payload = {
-      ok: ping.ok,
-      ...(ping.ok ? {} : { error: "llm", kind: ping.kind ?? "unreachable" }),
-      llm: {
-        model: ping.model,
-        baseUrl: ping.baseUrl,
-        status: ping.status,
-        kind: ping.kind ?? (ping.ok ? "ok" : "unreachable"),
-        reason: ping.reason,
-        latencyMs: ping.latencyMs,
-      },
-      ...(ping.ok ? {} : { hint: HINT_LLM, reason: ping.reason }),
+      ok: !failed,
+      ...(failed ? { error: "llm", kind: failed.ping.kind ?? "unreachable" } : {}),
+      // `llm` is the role that failed, or the browser role: igflow reads this object.
+      llm: describe(failed ?? results[0]!),
+      roles: Object.fromEntries(results.map((result) => [result.role, describe(result)])),
+      videoFormat,
+      ...(failed ? { hint: HINT_LLM, reason: `${failed.role} model: ${failed.ping.reason}` } : {}),
     };
     // Compact: igflow classifies the last stdout JSON object. Pretty-print
     // made lastJSONLine keep only the opening "{" and die as "no tail JSON".
     console.log(JSON.stringify(payload));
-    process.exit(ping.ok ? 0 : 4);
+    process.exit(failed ? 4 : 0);
   }
 
   if (command === "login") {

@@ -468,7 +468,7 @@ describe("scrape-profile help", () => {
     let combined = "";
     // Empty strings block dotenv from repopulating from .env (dotenv only
     // sets when a key is undefined) and our firstNonEmpty treats "" as unset.
-    const env = { ...process.env, QWEN_API_KEY: "", DASHSCOPE_API_KEY: "", ALIBABA_API_KEY: "" };
+    const env = { ...process.env, LLM_API_KEY: "", QWEN_API_KEY: "", DASHSCOPE_API_KEY: "", ALIBABA_API_KEY: "" };
     try {
       execFileSync(
         "bun",
@@ -512,7 +512,7 @@ it("requires explicit opt-in to skip the scraper LLM preflight", () => {
 });
 
 it("skipped scraper preflight makes no provider request or key lookup", async () => {
-  const keys = ["QWEN_API_KEY", "DASHSCOPE_API_KEY", "ALIBABA_API_KEY"];
+  const keys = ["LLM_API_KEY", "QWEN_API_KEY", "DASHSCOPE_API_KEY", "ALIBABA_API_KEY"];
   const prior = keys.map(key => process.env[key]);
   try {
     for (const key of keys) process.env[key] = "";

@@ -9,6 +9,33 @@
  * Never prints the API key.
  */
 
+import { PROBE_MP4_BASE64, PROBE_PNG_BASE64 } from "./probe-media.js";
+import type { VideoFormat } from "./qwen.js";
+
+/** What the check sends: plain text, an image, or a short video. */
+export type Probe = "text" | "image" | "video";
+
+/** One video content part in the chosen format. Shared shape with cmd/iganalyze. */
+export function videoPart(dataUrl: string, format: VideoFormat): Record<string, unknown> {
+  if (format === "file") return { type: "file", file: { filename: "video.mp4", file_data: dataUrl } };
+  if (format === "image_url") return { type: "image_url", image_url: { url: dataUrl } };
+  return { type: "video_url", video_url: { url: dataUrl }, fps: 1 };
+}
+
+const SEEN = "SEEN";
+const MISSING = "NOMEDIA";
+function probeMessages(probe: Probe, videoFormat: VideoFormat): unknown[] {
+  if (probe === "text") return [{ role: "user", content: "ping" }];
+  const noun = probe === "image" ? "an image" : "a video";
+  const media = probe === "image"
+    ? { type: "image_url", image_url: { url: `data:image/png;base64,${PROBE_PNG_BASE64}` } }
+    : videoPart(`data:video/mp4;base64,${PROBE_MP4_BASE64}`, videoFormat);
+  return [{ role: "user", content: [
+    { type: "text", text: `If ${noun} reached you, reply with exactly ${SEEN}. If none did, reply with exactly ${MISSING}.` },
+    media,
+  ] }];
+}
+
 export type LlmKind =
   | "missing-key"
   | "bad-key"
@@ -153,7 +180,12 @@ export async function pingLlm(opts: {
   model: string;
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
+  /** text (default) proves the key and model; image and video also prove the media arrives. */
+  probe?: Probe;
+  videoFormat?: VideoFormat;
 }): Promise<PingResult> {
+  const probe = opts.probe ?? "text";
+  const videoFormat = opts.videoFormat ?? "video_url";
   const started = performance.now();
   const timeoutMs = opts.timeoutMs ?? 10_000;
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -168,7 +200,7 @@ export async function pingLlm(opts: {
       baseUrl: base,
       status: null,
       reason:
-        "QWEN_API_KEY / DASHSCOPE_API_KEY / ALIBABA_API_KEY is not set",
+        "LLM_API_KEY (or QWEN_API_KEY) is not set",
       latencyMs: 0,
     };
   }
@@ -187,8 +219,9 @@ export async function pingLlm(opts: {
       body: JSON.stringify({
         // Keep the reported model name, but send the provider's bare API id.
         model: apiModelId(opts.model),
-        messages: [{ role: "user", content: "ping" }],
-        max_tokens: 1,
+        messages: probeMessages(probe, videoFormat),
+        // Media probes leave room for models that think before they answer.
+        max_tokens: probe === "text" ? 1 : 2000,
       }),
       signal: controller.signal,
     });
@@ -225,6 +258,24 @@ export async function pingLlm(opts: {
   const latencyMs = Math.round(performance.now() - started);
   const bodySnippet = firstLine(bodyText, 400);
 
+  if (status >= 200 && status < 300 && probe !== "text") {
+    // A 2xx is not enough: some endpoints drop media parts they do not
+    // understand and let the model answer without them.
+    let answer = "";
+    try { answer = String(JSON.parse(bodyText)?.choices?.[0]?.message?.content ?? ""); } catch { answer = ""; }
+    if (!answer.includes(SEEN) || answer.includes(MISSING)) {
+      const how = probe === "video" ? ` attached as ${videoFormat}; pick a model with video input or set LLM_VIDEO_FORMAT (video_url, file, image_url)` : "; pick a model with image input";
+      return {
+        ok: false,
+        kind: "bad-model",
+        model: opts.model,
+        baseUrl: base,
+        status,
+        reason: `model ${apiModelId(opts.model)} answered but did not receive the ${probe}${how}. It said: ${firstLine(answer, 120) || "(nothing)"}`,
+        latencyMs,
+      };
+    }
+  }
   if (status >= 200 && status < 300) {
     return {
       ok: true,
@@ -315,4 +366,4 @@ export function pingToError(result: PingResult): LlmError {
 }
 
 export const HINT_LLM =
-  "set QWEN_API_KEY/DASHSCOPE_API_KEY in .env or top up the Token Plan, then re-run";
+  "check LLM_API_KEY, LLM_BASE_URL and the LLM_MODEL_* names in .env (or QWEN_API_KEY and its plan), then re-run";

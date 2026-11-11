@@ -163,6 +163,34 @@ describe("pingLlm classification", () => {
     assert.equal(isProviderError(new Error("403 AccessDenied.Unpurchased: Access to model denied"))?.kind, "quota");
   });
 
+  it("fails a media role when the model answers without having received the media", async () => {
+    let sent: any = null;
+    const { baseUrl, close } = await withServer(async (req) => {
+      sent = await req.json();
+      return new Response(JSON.stringify({ choices: [{ message: { content: "NOMEDIA" } }] }), { status: 200 });
+    });
+    after(close);
+    const res = await pingLlm({ baseUrl, apiKey: "sk", model: "openai/router/m", probe: "video", videoFormat: "file" });
+    assert.equal(res.ok, false);
+    assert.equal(res.kind, "bad-model");
+    assert.match(res.reason, /did not receive the video attached as file/);
+    assert.equal(sent.model, "router/m");
+    assert.equal(sent.messages[0].content[1].type, "file");
+    assert.match(sent.messages[0].content[1].file.file_data, /^data:video\/mp4;base64,/);
+  });
+
+  it("passes a media role when the model confirms it received the media", async () => {
+    const parts: string[] = [];
+    const { baseUrl, close } = await withServer(async (req) => {
+      parts.push(((await req.json()) as any).messages[0].content[1].type);
+      return new Response(JSON.stringify({ choices: [{ message: { content: "SEEN" } }] }), { status: 200 });
+    });
+    after(close);
+    assert.equal((await pingLlm({ baseUrl, apiKey: "sk", model: "m", probe: "image" })).ok, true);
+    assert.equal((await pingLlm({ baseUrl, apiKey: "sk", model: "m", probe: "video", videoFormat: "video_url" })).ok, true);
+    assert.deepEqual(parts, ["image_url", "video_url"]);
+  });
+
   it("classifies a closed port as unreachable", async () => {
     const port = await findClosedPort();
     const res = await pingLlm({

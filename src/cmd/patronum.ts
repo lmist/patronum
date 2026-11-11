@@ -15,6 +15,7 @@
 import "dotenv/config";
 import { existsSync, readFileSync } from "node:fs";
 import { DATA_HOME, HOME_ENV, REPO_ROOT, defaultDataHome, inHome, inRepo, layout } from "../paths.js";
+import { API_KEY_NAMES } from "../llm/qwen.js";
 import { needsDetailEnrichment } from "../collect/resume.js";
 import { CHECKS, COMMANDS, EXIT_CODES, MODULES, type CommandEntry } from "./patronum-catalogue.js";
 import { logoWith } from "./patronum-logo.js";
@@ -166,7 +167,7 @@ async function dashboardHealth(): Promise<{ running: boolean; url: string }> {
 async function showStatus(flags: Flags): Promise<void> {
   const present = (...names: string[]) => names.some((name) => !!process.env[name]?.trim());
   const credentials = {
-    model: present("QWEN_API_KEY", "DASHSCOPE_API_KEY", "ALIBABA_API_KEY"),
+    model: present(...API_KEY_NAMES),
     instagramUser: present("IG_USER"),
     instagramPassword: present("IG_PASS"),
     authenticatorSecret: present("IG_TOTP_SECRET"),
@@ -184,7 +185,7 @@ async function showStatus(flags: Flags): Promise<void> {
   const dashboard = await dashboardHealth();
   const next: string[] = [];
   if (!files.dependencies) next.push("bun install");
-  if (!credentials.model) next.push("set QWEN_API_KEY in .env, then: patronum preflight");
+  if (!credentials.model) next.push("set LLM_API_KEY, LLM_BASE_URL and LLM_MODEL in .env (or QWEN_API_KEY for the Qwen Token Plan), then: patronum preflight");
   if (!credentials.instagramUser || !credentials.instagramPassword) next.push("set IG_USER and IG_PASS in .env");
   if (!files.savedLogin && credentials.instagramUser) next.push("patronum login");
   if (!tools.go || !tools.ffmpeg || !tools.ffprobe) next.push("install go, ffmpeg and ffprobe for the media stages");
