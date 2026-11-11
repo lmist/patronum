@@ -3,6 +3,7 @@ import type { Stagehand } from "@browserbasehq/stagehand";
 import type { Account } from "./accounts.js";
 import { fetchLatestInstagramCode } from "./agentmail.js";
 import { generateTOTP, totpSecondsLeft } from "./totp.js";
+import { enterCodeOnce, type CodeEntryOutcome } from "./code-entry.js";
 import {
   createStagehand,
   sessionIdOf,
@@ -294,76 +295,68 @@ export async function fillLoginForm(
   return submittedAfter;
 }
 
+/** Authenticator codes submitted by this process. Instagram locks sign-in after too many refusals. */
+const MAX_TOTP_SUBMISSIONS = 3;
+let totpSubmissions = 0;
+let lastTotpCode = "";
+
+/** A code Instagram has not seen from us yet: a code is accepted once, so a retry waits for the next 30-second window. */
+async function freshTotpCode(secret: string): Promise<string> {
+  if (totpSecondsLeft() < 8) {
+    console.log("[totp] waiting for next time window…");
+    await sleep(totpSecondsLeft() * 1000 + 400);
+  }
+  let code = generateTOTP(secret);
+  if (code === lastTotpCode) {
+    console.log("[totp] that code was already used — waiting for the next one");
+    await sleep(totpSecondsLeft() * 1000 + 400);
+    code = generateTOTP(secret);
+  }
+  return code;
+}
+
 async function submitTotp(
   stagehand: Stagehand,
   secret: string,
 ): Promise<PageKind> {
   const page = stagehand.context.pages()[0]!;
 
-  let step: "method_picker" | "code_entry" | "other" = "code_entry";
-  try {
-    const codeFields = await stagehand.observe(OBSERVE_TOTP_CODE_FIELD);
-    if (codeFields.length === 0) {
-      const methods = await stagehand.observe(
-        "Find Authentication app or text message options for two-factor",
-      );
-      step = methods.length > 0 ? "method_picker" : "other";
+  async function submitOnce(): Promise<CodeEntryOutcome> {
+    if (totpSubmissions >= MAX_TOTP_SUBMISSIONS) {
+      throw new AuthError(`Instagram did not accept ${MAX_TOTP_SUBMISSIONS} authenticator codes. Check IG_TOTP_SECRET and this machine's clock before trying again; more attempts can lock the account.`, {
+        state: "totp",
+        evidence: { ok: false, state: "totp", reason: `authenticator code refused ${MAX_TOTP_SUBMISSIONS} times` },
+      });
     }
-  } catch {
-    step = "code_entry";
+    const code = await freshTotpCode(secret);
+    console.log(`[totp] entering code (valid ~${totpSecondsLeft()}s)`);
+    const outcome = await enterCodeOnce(stagehand, code);
+    if (outcome !== "no-field") { totpSubmissions++; lastTotpCode = code; }
+    console.log(`[totp] code ${outcome}`);
+    return outcome;
   }
-  console.log(`[totp] step: ${step}`);
 
-  if (step === "method_picker") {
-    console.log("[totp] selecting authentication app…");
+  // The code field is found in the page itself. The model is asked only when
+  // there is no field yet, which means Instagram is showing a method picker.
+  let outcome = await submitOnce();
+  if (outcome === "no-field") {
+    console.log("[totp] no code field yet — selecting authentication app…");
     try {
       await stagehand.act(ACT_CLICK_AUTH_APP, { timeout: 8_000 });
       await sleep(2000);
     } catch {
-      // continue
+      // continue: the field may have appeared anyway
     }
+    outcome = await submitOnce();
   }
-
-  if (totpSecondsLeft() < 8) {
-    console.log("[totp] waiting for next time window…");
-    await sleep(totpSecondsLeft() * 1000 + 400);
+  if (outcome === "no-field") {
+    throw new Error("Instagram asked for an authenticator code but no code field was found. Use Open login browser to inspect the page.");
   }
-
-  async function enterAndSubmitCode(code: string) {
-    console.log(`[totp] entering code (valid ~${totpSecondsLeft()}s)`);
-    await stagehand.act(ACT_TYPE_TOTP, {
-      ...totpVariables(code),
-      timeout: 10_000,
-    });
-    try {
-      await page.keyPress("Enter");
-    } catch {
-      // ignore
-    }
-    await sleep(400);
-    try {
-      const submits = await stagehand.observe(OBSERVE_TOTP_SUBMIT);
-      if (submits.length > 0) {
-        await stagehand.act(submits[0]!);
-      } else {
-        await stagehand.act(ACT_CLICK_TOTP_SUBMIT, { timeout: 8_000 });
-      }
-    } catch {
-      await stagehand.act(ACT_CLICK_TOTP_SUBMIT, { timeout: 8_000 });
-    }
-  }
-
-  await enterAndSubmitCode(generateTOTP(secret));
-  await sleep(4500);
 
   let kind = await classifyPage(stagehand, page.url());
-  if (kind === "totp") {
-    console.log("[totp] still on 2FA — retrying with fresh code");
-    if (totpSecondsLeft() < 5) {
-      await sleep(totpSecondsLeft() * 1000 + 400);
-    }
-    await enterAndSubmitCode(generateTOTP(secret));
-    await sleep(4500);
+  if (kind === "totp" && outcome !== "advanced") {
+    console.log(`[totp] still on 2FA (${outcome}) — one retry with the next code`);
+    await submitOnce();
     kind = await classifyPage(stagehand, page.url());
   }
 
