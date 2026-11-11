@@ -94,12 +94,16 @@ type outManifest struct {
 }
 
 func main() {
-	inPath := flag.String("in", "", "path to profile JSON from scrape-profile")
+	inPath := flag.String("in", "", "path to the collected profile JSON (data/profiles/<handle>-profile.json)")
 	mediaDir := flag.String("media", "", "downloaded media dir (default: data/media/<username>)")
 	outDir := flag.String("out", "", "output directory (default: data/<username>-unique)")
 	fresh := flag.Bool("fresh", false, "wipe the output directory before writing")
 	noStills := flag.Bool("no-stills", false, "skip ffmpeg still extraction")
 	skipReels := flag.Bool("skip-reels", false, "skip reels and standalone videos; image + carousel posts only")
+	flag.Usage = func() {
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage: patronum unique -in <profile.json> [-media <media dir>] [-out <dir>] [options]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 
 	if *inPath == "" {

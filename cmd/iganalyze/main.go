@@ -170,7 +170,7 @@ func (e *providerFailureError) Error() string {
 
 func main() {
 	loadDotEnv(".env")
-	profilePath := flag.String("profile", "", "path to scrape-profile JSON")
+	profilePath := flag.String("profile", "", "path to the collected profile JSON (data/profiles/<handle>-profile.json)")
 	mediaDir := flag.String("media", "", "media directory (default data/media/<user>)")
 	outDir := flag.String("out", "", "analysis output dir (default data/analysis/<user>)")
 	workers := flag.Int("workers", 2, "parallel Qwen workers")
@@ -182,6 +182,10 @@ func main() {
 	skipReels := flag.Bool("skip-reels", false, "skip reels and standalone videos; image + carousel posts only")
 	model := flag.String("model", envOr("QWEN_MODEL", defaultModel), "Qwen model (qwen3.8-max native video)")
 	baseURL := flag.String("base-url", envOr("QWEN_BASE_URL", defaultBaseURL), "OpenAI-compatible API base URL")
+	flag.Usage = func() {
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage: patronum analyze -profile <profile.json> [-media <media dir>] [-out <dir>] [options]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 
 	if *profilePath == "" {

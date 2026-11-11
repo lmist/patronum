@@ -17,12 +17,16 @@ import (
 )
 
 func main() {
-	inPath := flag.String("in", "", "path to profile JSON from scrape-profile")
+	inPath := flag.String("in", "", "path to the collected profile JSON (data/profiles/<handle>-profile.json)")
 	outDir := flag.String("out", "", "output directory (default: data/media/<username>)")
 	workers := flag.Int("workers", 15, "number of concurrent download workers")
 	fresh := flag.Bool("fresh", false, "ignore existing manifest and re-download everything")
 	reorgOnly := flag.Bool("reorg", false, "move existing flat files into per-post directories and exit")
 	skipReels := flag.Bool("skip-reels", false, "skip reels and standalone videos; image + carousel posts only")
+	flag.Usage = func() {
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage: patronum download -in <profile.json> [-out <media dir>] [options]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 
 	if *reorgOnly {
