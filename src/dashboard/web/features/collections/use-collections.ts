@@ -88,7 +88,7 @@ export function useComposer() {
     sessionProps:{name:"session",value:app.selection.sessionPid,onChange:sessionChange,disabled:busy,"aria-invalid":errors.session?true:undefined,"aria-describedby":errors.session?"collection-session-error":undefined},
     sessionMissing,sessionOptions:sessions.map(l=>({value:String(l.pid),label:"Checked session · "+dateLabel(l.startedAt)})),
     sourceHelp:draft.source==="saved"?"Retry unfinished posts from the last saved list for this handle. No new posts are discovered.":"Find posts on the profile and keep any completed work already saved.",
-    goalHelp:analyzing?"Download and deduplicate media, then analyze it with Qwen. Requires a working LLM key.":"Download and deduplicate media. AI analysis and its readiness check are skipped.",
+    goalHelp:analyzing?"Download and deduplicate media, then describe each image and video with the video model. Requires a model that passes the readiness check.":"Download and deduplicate media. AI analysis and its readiness check are skipped.",
     summary:`${draft.browserWorkers || "—"} browser tabs · ${draft.downloadWorkers || "—"} parallel downloads`,
     launchLabel:busy?"Starting…":"Start collection",
     message:mapCommand.isPending?"Starting API mapping…":command.isPending?"Starting collection…":command.isSuccess?"Collection accepted. Follow its workflow below.":"",
