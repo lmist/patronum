@@ -57,8 +57,10 @@ There is no default account or client. Every collection names the handle it is f
 You need [Bun](https://bun.sh), Go, Chrome, `ffmpeg` and `ffprobe`.
 
 ```bash
+git clone https://github.com/lmist/patronum.git
+cd patronum
 bun install
-cp .env.example .env          # QWEN_API_KEY, IG_USER, IG_PASS
+cp .env.example .env          # fill in QWEN_API_KEY, IG_USER, IG_PASS; the rest is optional
 ./bin/patronum status         # says what is still missing
 ./bin/patronum login          # sign in once; cookies are saved
 ./bin/patronum dashboard      # http://127.0.0.1:7799

@@ -14,7 +14,7 @@
 set -uo pipefail
 
 SOURCE="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/patronum-fresh.XXXXXX")"
+WORK="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/patronum-fresh.XXXXXX")" && pwd)"
 CLONE="$WORK/patronum"
 PORT="${FRESH_INSTALL_PORT:-17799}"
 URL="http://127.0.0.1:$PORT"
@@ -146,7 +146,7 @@ if command -v mise >/dev/null 2>&1; then
 else
   echo "  skip  mise is not installed"
 fi
-[[ ! -e scripts/install-bd.sh ]] && ! grep -rqs 'install-bd' Makefile scripts docs ./*.md && pass "the old Beads download script is gone" || fail "the old Beads download script is gone"
+[[ ! -e scripts/install-bd.sh ]] && ! grep -rqs --exclude=fresh-install-check.sh 'install-bd' Makefile scripts docs ./*.md && pass "the old Beads download script is gone" || fail "the old Beads download script is gone"
 
 echo "afterwards"
 dirty="$(git status --short)"
