@@ -21,7 +21,7 @@ func TestHelpTextDocumentsContract(t *testing.T) {
 		"--scroll-rounds", "--timeout", "--workflow-id", "--no-preflight",
 		"--older-than", "--keep-errors", "--dry-run",
 		"0 ok", "1 job failed", "2 usage", "3 host lock held",
-		"4 database error", "5 precondition failed", "patronum login", "QWEN_API_KEY", ".env",
+		"4 database error", "5 precondition failed", "patronum login", "LLM_API_KEY", ".env",
 	} {
 		t.Run(want, func(t *testing.T) {
 			if !strings.Contains(helpText(), want) {

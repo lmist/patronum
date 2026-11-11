@@ -59,8 +59,8 @@ type PreflightTool struct {
 // Hints surfaced in error events so humans know how to recover.
 const (
 	HintAuth = "run `patronum login` (or finish 2FA in the local Chrome), then resume the job from the dashboard"
-	HintLLM  = "fix QWEN_API_KEY / Token Plan in .env, then resume the job from the dashboard"
-	HintEnv  = "put IG_USER, IG_PASS, and QWEN_API_KEY in .env or export them, then resume the job from the dashboard"
+	HintLLM  = "run `patronum preflight`, fix the model settings in .env (LLM_API_KEY, LLM_BASE_URL, LLM_MODEL_*), then resume the job from the dashboard"
+	HintEnv  = "put IG_USER, IG_PASS, and LLM_API_KEY in .env or export them, then resume the job from the dashboard"
 )
 
 func formatLLMPreflightMsg(kind, msg string) string {
@@ -106,7 +106,7 @@ func chromeCookieExpiry(expiresUtc int64) time.Time {
 var requiredEnvKeys = [][]string{
 	{"IG_USER"},
 	{"IG_PASS"},
-	{"QWEN_API_KEY", "DASHSCOPE_API_KEY", "ALIBABA_API_KEY"},
+	{"LLM_API_KEY", "QWEN_API_KEY", "DASHSCOPE_API_KEY", "ALIBABA_API_KEY"},
 }
 
 // checkEnv verifies that every required env variable (or at least one per

@@ -23,6 +23,7 @@ import (
 // analyzer boundary only. The local server returns canned JSON; it deliberately
 // makes no claim that an upstream provider understood the visual content.
 func TestAnalyzeOneSendsSourceBytesAtHTTPSeam(t *testing.T) {
+	t.Setenv("LLM_VIDEO_FORMAT", "video_url")
 	type capturedRequest struct {
 		contentType string
 		dataURL     string
@@ -121,6 +122,7 @@ func TestAnalyzeOneSendsSourceBytesAtHTTPSeam(t *testing.T) {
 }
 
 func TestAnalyzeOneFallsBackOnlyForRejectedShortVideo(t *testing.T) {
+	t.Setenv("LLM_VIDEO_FORMAT", "video_url")
 	for _, tool := range []string{"ffprobe", "ffmpeg"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			t.Skip(tool + " unavailable")
@@ -694,3 +696,35 @@ func writeMediaManifest(t *testing.T, dir string, entries map[string]string) {
 }
 
 func strptr(value string) *string { return &value }
+
+func TestVideoFormatFollowsEndpointAndSetting(t *testing.T) {
+	t.Setenv("LLM_VIDEO_FORMAT", "")
+	if got := videoFormat("https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1"); got != "video_url" {
+		t.Fatalf("Qwen endpoint format = %q, want video_url", got)
+	}
+	if got := videoFormat("https://router.example/v1"); got != "file" {
+		t.Fatalf("other endpoint format = %q, want file", got)
+	}
+	t.Setenv("LLM_VIDEO_FORMAT", "image_url")
+	if got := videoFormat("https://router.example/v1"); got != "image_url" {
+		t.Fatalf("explicit format = %q, want image_url", got)
+	}
+
+	file := videoPart("data:video/mp4;base64,AAAA", "file")
+	if file["type"] != "file" || file["file"].(map[string]any)["file_data"] != "data:video/mp4;base64,AAAA" {
+		t.Fatalf("file part = %#v", file)
+	}
+	native := videoPart("data:video/mp4;base64,AAAA", "video_url")
+	if native["type"] != "video_url" || native["fps"] != 1 {
+		t.Fatalf("video_url part = %#v", native)
+	}
+
+	// enable_thinking is a Qwen field: only Qwen's endpoint gets it.
+	t.Setenv("LLM_VIDEO_FORMAT", "")
+	if _, ok := withProviderOptions(map[string]any{}, "https://router.example/v1")["enable_thinking"]; ok {
+		t.Fatal("a non-Qwen endpoint was sent enable_thinking")
+	}
+	if _, ok := withProviderOptions(map[string]any{}, "https://dashscope.aliyuncs.com/v1")["enable_thinking"]; !ok {
+		t.Fatal("the Qwen endpoint was not sent enable_thinking")
+	}
+}

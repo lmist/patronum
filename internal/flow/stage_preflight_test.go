@@ -118,6 +118,7 @@ func TestCheckEnv_MissingIGUser(t *testing.T) {
 func TestCheckEnv_MissingAllAPIKeys(t *testing.T) {
 	t.Setenv("IG_USER", "testuser")
 	t.Setenv("IG_PASS", "testpass")
+	t.Setenv("LLM_API_KEY", "")
 	t.Setenv("QWEN_API_KEY", "")
 	t.Setenv("DASHSCOPE_API_KEY", "")
 	t.Setenv("ALIBABA_API_KEY", "")
@@ -133,6 +134,7 @@ func TestCheckEnv_MissingAllAPIKeys(t *testing.T) {
 func TestCheckEnv_DashScopeKeySuffices(t *testing.T) {
 	t.Setenv("IG_USER", "testuser")
 	t.Setenv("IG_PASS", "testpass")
+	t.Setenv("LLM_API_KEY", "")
 	t.Setenv("QWEN_API_KEY", "")
 	t.Setenv("DASHSCOPE_API_KEY", "sk-dash")
 	t.Setenv("ALIBABA_API_KEY", "")
@@ -368,6 +370,7 @@ func TestCheckTools_CollectionDoesNotRequireOpenKnowledge(t *testing.T) {
 func TestRunPreflight_EnvMissing(t *testing.T) {
 	t.Setenv("IG_USER", "")
 	t.Setenv("IG_PASS", "")
+	t.Setenv("LLM_API_KEY", "")
 	t.Setenv("QWEN_API_KEY", "")
 	t.Setenv("DASHSCOPE_API_KEY", "")
 	t.Setenv("ALIBABA_API_KEY", "")
@@ -554,6 +557,7 @@ func TestRunPreflight_ErrorsAreNonRetryable(t *testing.T) {
 		{"env", func() error {
 			t.Setenv("IG_USER", "")
 			t.Setenv("IG_PASS", "")
+			t.Setenv("LLM_API_KEY", "")
 			t.Setenv("QWEN_API_KEY", "")
 			t.Setenv("DASHSCOPE_API_KEY", "")
 			t.Setenv("ALIBABA_API_KEY", "")

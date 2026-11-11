@@ -15,7 +15,8 @@
 //	  -skip-reels
 //	  -all-frames   # every file per shortcode (overrides -per-shortcode)
 //
-// Auth: QWEN_API_KEY or DASHSCOPE_API_KEY (loaded from env / .env).
+// Auth: LLM_API_KEY, or QWEN_API_KEY / DASHSCOPE_API_KEY (loaded from env / .env).
+// Model: LLM_MODEL_VIDEO, LLM_MODEL or QWEN_MODEL. Video is attached as LLM_VIDEO_FORMAT says.
 package main
 
 import (
@@ -180,8 +181,8 @@ func main() {
 	stills := flag.Bool("stills", true, "also analyze unique/native stills (image_url) alongside video")
 	fresh := flag.Bool("fresh", false, "re-analyze even if analysis exists")
 	skipReels := flag.Bool("skip-reels", false, "skip reels and standalone videos; image + carousel posts only")
-	model := flag.String("model", envOr("QWEN_MODEL", defaultModel), "Qwen model (qwen3.8-max native video)")
-	baseURL := flag.String("base-url", envOr("QWEN_BASE_URL", defaultBaseURL), "OpenAI-compatible API base URL")
+	model := flag.String("model", firstEnv(defaultModel, "LLM_MODEL_VIDEO", "LLM_MODEL", "QWEN_MODEL"), "model for media analysis; needs image and video input")
+	baseURL := flag.String("base-url", firstEnv(defaultBaseURL, "LLM_BASE_URL", "QWEN_BASE_URL"), "OpenAI-compatible API base URL")
 	flag.Usage = func() {
 		fmt.Fprintln(flag.CommandLine.Output(), "Usage: patronum analyze -profile <profile.json> [-media <media dir>] [-out <dir>] [options]")
 		flag.PrintDefaults()
@@ -336,12 +337,56 @@ func main() {
 }
 
 func resolveAPIKey() (string, error) {
-	for _, key := range []string{"QWEN_API_KEY", "DASHSCOPE_API_KEY", "ALIBABA_API_KEY"} {
+	for _, key := range []string{"LLM_API_KEY", "QWEN_API_KEY", "DASHSCOPE_API_KEY", "ALIBABA_API_KEY"} {
 		if k := strings.TrimSpace(os.Getenv(key)); k != "" {
 			return k, nil
 		}
 	}
-	return "", fmt.Errorf("set QWEN_API_KEY or DASHSCOPE_API_KEY")
+	return "", fmt.Errorf("set LLM_API_KEY (or QWEN_API_KEY)")
+}
+
+// firstEnv returns the first non-empty variable, or fallback.
+func firstEnv(fallback string, keys ...string) string {
+	for _, key := range keys {
+		if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+			return v
+		}
+	}
+	return fallback
+}
+
+// videoFormat says how a video is attached. Qwen's own endpoint takes
+// video_url; other endpoints get an OpenAI file part unless LLM_VIDEO_FORMAT
+// says otherwise. Mirrors resolveVideoFormat in src/llm/qwen.ts.
+func videoFormat(baseURL string) string {
+	switch set := strings.ToLower(strings.TrimSpace(os.Getenv("LLM_VIDEO_FORMAT"))); set {
+	case "video_url", "file", "image_url":
+		return set
+	}
+	if strings.Contains(baseURL, "aliyuncs.com") || strings.Contains(baseURL, "dashscope") {
+		return "video_url"
+	}
+	return "file"
+}
+
+// videoPart is one video content part in the given format. Mirrors videoPart
+// in src/llm/preflight.ts, which proves the format works before a job starts.
+func videoPart(dataURL, format string) map[string]any {
+	switch format {
+	case "file":
+		return map[string]any{"type": "file", "file": map[string]any{"filename": "video.mp4", "file_data": dataURL}}
+	case "image_url":
+		return map[string]any{"type": "image_url", "image_url": map[string]any{"url": dataURL}}
+	}
+	return map[string]any{"type": "video_url", "video_url": map[string]any{"url": dataURL}, "fps": 1}
+}
+
+// withProviderOptions adds Qwen-only request fields when talking to Qwen.
+func withProviderOptions(body map[string]any, baseURL string) map[string]any {
+	if videoFormat(baseURL) == "video_url" {
+		body["enable_thinking"] = false
+	}
+	return body
 }
 
 func envOr(key, fallback string) string {
@@ -946,7 +991,7 @@ func analyzeOneWithRetry(client *http.Client, apiKey, baseURL, model string, j j
 	if j.MediaType == "video" {
 		content = []map[string]any{
 			{"type": "text", "text": userPrompt},
-			{"type": "video_url", "video_url": map[string]any{"url": dataURL}, "fps": 1},
+			videoPart(dataURL, videoFormat(baseURL)),
 		}
 	} else {
 		content = []map[string]any{
@@ -964,8 +1009,8 @@ func analyzeOneWithRetry(client *http.Client, apiKey, baseURL, model string, j j
 		},
 		"max_completion_tokens": 2048,
 		"temperature":           0.3,
-		"enable_thinking":       false,
 	}
+	body = withProviderOptions(body, baseURL)
 
 	raw, status, err := postAnalysisWithRetry(client, chatCompletionsURL(baseURL), apiKey, body, retryWait)
 	if err != nil {
@@ -1064,8 +1109,8 @@ func analyzeSampledVideoFrames(client *http.Client, apiKey, baseURL, model strin
 		},
 		"max_completion_tokens": 2048,
 		"temperature":           0.3,
-		"enable_thinking":       false,
 	}
+	body = withProviderOptions(body, baseURL)
 	raw, status, err := postAnalysisWithRetry(client, chatCompletionsURL(baseURL), apiKey, body, retryWait)
 	if err != nil {
 		return decorate(analysisResult{
