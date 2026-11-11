@@ -55,6 +55,21 @@ const FIND_SUBMIT = `(() => [...document.querySelectorAll(${JSON.stringify(BUTTO
 /** Runs in the page: true when a code input is showing next to a refusal message. */
 const REJECTED = `(() => /check the security code|code (you entered )?(is|was|isn't|is not)? ?(incorrect|invalid|wrong|expired|not valid|right)|please try again/i.test(document.body?.innerText ?? ""))()`;
 
+type Page = ReturnType<Stagehand["context"]["pages"]>[number];
+
+/** What the page shows, digits masked, for the log. */
+async function visibleText(page: Page): Promise<string> {
+  try {
+    const text = String(await page.evaluate(`(document.body?.innerText ?? "")`));
+    return text.replace(/\s+/g, " ").replace(/\d{4,}/g, "<digits>").trim().slice(0, 400) || "(nothing)";
+  } catch { return "(unreadable)"; }
+}
+
+async function refused(page: Page): Promise<CodeEntryOutcome> {
+  console.log(`[code] refused; the page says: ${await visibleText(page)}`);
+  return "rejected";
+}
+
 /**
  * Put `code` in the code input, submit it once, and report what the page did.
  * `settleMs` is how long to wait for an answer.
@@ -85,15 +100,19 @@ export async function enterCodeOnce(stagehand: Stagehand, code: string, settleMs
   }
   if (submit >= 0) await page.locator(BUTTONS).nth(submit).click();
   else await page.keyPress("Enter");
+  console.log(`[code] field ${selector} holds the code; submitted with ${submit >= 0 ? "the Continue button" : "Enter (no enabled button found)"}`);
 
   for (const deadline = Date.now() + settleMs; Date.now() < deadline; await sleep(300)) {
+    // Only a new address means the code was taken: while Instagram checks a
+    // code it disables the field, which is not the same as moving on.
     if (new URL(page.url()).pathname !== new URL(startUrl).pathname) return "advanced";
     try {
-      if ((await page.evaluate(FIND_CODE_INPUT)) === null) return "advanced";
-      if (!staleRefusal && (await page.evaluate(REJECTED))) return "rejected";
+      if (!staleRefusal && (await page.evaluate(REJECTED))) return refused(page);
     } catch {
       // The page is navigating; the next pass reads the new one.
     }
   }
-  try { return (await page.evaluate(REJECTED)) ? "rejected" : "stuck"; } catch { return "stuck"; }
+  try { if (await page.evaluate(REJECTED)) return refused(page); } catch { /* fall through */ }
+  console.log(`[code] no answer after ${Math.round(settleMs / 1000)}s; the page says: ${await visibleText(page)}`);
+  return "stuck";
 }

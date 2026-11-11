@@ -297,7 +297,10 @@ export async function fillLoginForm(
 
 /** Authenticator codes submitted by this process. Instagram locks sign-in after too many refusals. */
 const MAX_TOTP_SUBMISSIONS = 3;
+/** Clear refusals of a clean, single, fresh code mean the secret or the clock is wrong: stop early. */
+const MAX_TOTP_REFUSALS = 2;
 let totpSubmissions = 0;
+let totpRefusals = 0;
 let lastTotpCode = "";
 
 /** A code Instagram has not seen from us yet: a code is accepted once, so a retry waits for the next 30-second window. */
@@ -333,6 +336,12 @@ async function submitTotp(
     const outcome = await enterCodeOnce(stagehand, code);
     if (outcome !== "no-field") { totpSubmissions++; lastTotpCode = code; }
     console.log(`[totp] code ${outcome}`);
+    if (outcome === "rejected" && ++totpRefusals >= MAX_TOTP_REFUSALS) {
+      throw new AuthError(`Instagram refused ${MAX_TOTP_REFUSALS} authenticator codes in a row. IG_TOTP_SECRET is probably not this account's current authenticator secret (or this machine's clock is wrong). Stopping before the account is locked.`, {
+        state: "totp",
+        evidence: { ok: false, state: "totp", reason: `authenticator code refused ${MAX_TOTP_REFUSALS} times` },
+      });
+    }
     return outcome;
   }
 
