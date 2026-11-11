@@ -17,7 +17,7 @@ const root = DATA_HOME;
  */
 export type NetworkMapSurface = "profile" | "saved";
 
-const USAGE = "Usage: map-network --handle <Instagram handle> [--surface profile|saved]";
+const USAGE = "Usage: patronum map-api --handle <Instagram handle> [--surface profile|saved]";
 
 export function networkMapArgs(argv: string[]): { handle: string; surface: NetworkMapSurface } {
   let handle: string | null = null;
@@ -118,9 +118,32 @@ export async function mapInstagramNetwork(handle: string, surface: NetworkMapSur
   }
 }
 
+const HELP = `patronum map-api — record which Instagram routes a profile page uses
+
+${USAGE}
+
+  --handle <handle>            The profile to open (no URL)
+  --surface profile|saved      profile (default), or the owner-only Saved tab
+  -h, --help                   Help
+
+Opens Chrome with the saved login and writes cache/instagram-api-map.json.
+Prints one JSON document. Exit codes: 0 ok · 1 failed · 2 usage`;
+
 if (import.meta.main) {
-  try {
-    const { handle, surface } = networkMapArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  let parsed: ReturnType<typeof networkMapArgs> | null = null;
+  if (argv.includes("--help") || argv.includes("-h")) {
+    console.log(HELP);
+  } else {
+    try { parsed = networkMapArgs(argv); }
+    catch (error) {
+      const message = error instanceof Error ? error.message : "invalid arguments";
+      console.log(JSON.stringify({ ok: false, error: "usage", message: message === USAGE ? "unknown or missing option" : message, usage: USAGE }));
+      process.exitCode = 2;
+    }
+  }
+  if (parsed) try {
+    const { handle, surface } = parsed;
     console.log(JSON.stringify(await mapInstagramNetwork(handle, surface)));
   }
   catch (error) {
