@@ -1,5 +1,9 @@
 export const STAGES = ["preflight", "scrape", "verify", "download", "unique", "analyze", "knowledge"] as const;
 export type StageName = typeof STAGES[number];
+/** The stages a job is measured against. Knowledge is retired: it counts only for an old job that ran it. */
+export function countedStages(stages?: Partial<Record<StageName, { state?: string }>>): StageName[] {
+  return STAGES.filter(name => name !== "knowledge" || (stages?.knowledge?.state ?? "idle") !== "idle");
+}
 export const STAGE_LABELS: Record<StageName, string> = { preflight: "Readiness", scrape: "Collect posts", verify: "Verify posts", download: "Download", unique: "Deduplicate", analyze: "Analyze", knowledge: "Publish wiki" };
 export type WorkflowStatus = "SUCCESS" | "ERROR" | "PENDING" | "ENQUEUED" | "CANCELLED" | "MAX_RECOVERY_ATTEMPTS_EXCEEDED";
 export interface Workflow {

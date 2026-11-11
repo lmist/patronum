@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { buildFsm } from "./fsm";
-import { STAGES, type Detail, type WorkflowStatus } from "../../api/types";
+import { STAGES, countedStages, type Detail, type WorkflowStatus } from "../../api/types";
 function fixture(status:WorkflowStatus, currentStage:string):Detail {
   return {workflow:{status,skipped:[]} ,currentStage,stages:Object.fromEntries(STAGES.map(name=>[name,{state:name===currentStage?"running":"idle"}]))} as Detail;
 }
@@ -19,4 +19,10 @@ test("distinguishes skipped publishing from a completed job",()=>{
   const fsm=buildFsm(detail);
   expect(fsm.nodes.find(n=>n.id==="knowledge")?.state).toBe("skipped");
   expect(fsm.nodes.at(-1)?.state).toBe("done");
+});
+
+test("the retired knowledge stage counts only for a job that ran it", () => {
+  expect(countedStages({})).toEqual(["preflight","scrape","verify","download","unique","analyze"]);
+  expect(countedStages({knowledge:{state:"idle"}})).toHaveLength(6);
+  expect(countedStages({knowledge:{state:"done"}})).toHaveLength(7);
 });

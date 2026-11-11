@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Layers3, UserRound, SlidersHorizontal } from "lucide-react";
 import { useCommand, useWorkspace } from "../api/queries";
 import { updateSelection, selectWorkflow, type Section } from "./selection";
-import { actionName, dateLabel, duration, isActiveAction, isRunning, STAGES } from "../api/types";
+import { actionName, dateLabel, duration, isActiveAction, isRunning, countedStages } from "../api/types";
 import { useJobSidebar } from "./sidebar";
 import { collectionRecovery } from "./recovery";
 export function useApp() {
@@ -44,7 +44,8 @@ export function useApp() {
     title:selection.section==="account"?"Account":selection.section==="diagnostics"?"Diagnostics":"Jobs",
     workflow,canResume:Boolean(workflow&&["ERROR","CANCELLED","MAX_RECOVERY_ATTEMPTS_EXCEEDED"].includes(workflow.status)),
     canCancel:isRunning(workflow?.status),created:dateLabel(workflow?.createdAt),elapsed:duration(workflow?.startedAt,workflow?.completedAt),
-    completeStages:STAGES.filter(s=>detail.data?.stages[s]?.state==="done").length,
+    completeStages:countedStages(detail.data?.stages).filter(s=>detail.data?.stages[s]?.state==="done").length,
+    totalStages:countedStages(detail.data?.stages).length,
     connected:workspace.now.isSuccess&&!workspace.now.isError,
     updated:workspace.now.data?dateLabel(workspace.now.data.ts):"Connecting…",
     launchStatus:selection.receiptPid?(workspace.receipt.data?(isActiveAction(workspace.receipt.data)?"Collection command in progress":"Collection command "+workspace.receipt.data.status)+". Workflow status is shown above.":"Collection command accepted. Waiting for workflow status…"):"",

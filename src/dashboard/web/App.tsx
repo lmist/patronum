@@ -9,7 +9,6 @@ import { Progress } from "./features/progress/Progress";
 import { Results } from "./features/results/Results";
 import { Diagnostics } from "./features/diagnostics/Diagnostics";
 
-const STAGE_SLOTS=Array.from({length:7},(_,i)=>i);
 
 function CollectionsWorkspace() {
   const app=useDashboard();
@@ -21,7 +20,7 @@ function CollectionsWorkspace() {
     {app.workflowId&&app.detail.isPending&&<Loading label="Opening collection…"/>}
     {app.workflow&&<section id="detail-body" className="stack" aria-label="Collection details">
       <div className="detail-heading"><div><h1 id="wf-id">@{app.workflow.handle||"Unknown profile"}</h1><div id="wf-meta"><Status status={app.workflow.status}/><span className="muted">{app.created}</span></div></div></div>
-      <div className="job-summary"><div className="job-progress"><span className="muted">{app.completeStages} of 7 stages complete · {app.elapsed}</span><div className="stage-meter" data-status={app.canCancel?"running":app.detail.data?.errorText?"error":"idle"} aria-hidden="true">{STAGE_SLOTS.map(i=><span key={i} data-filled={i<app.completeStages} data-next={i===app.completeStages}/>)}</div></div><div className="actions"><Button id="btn-resume" hidden={!app.canResume} disabled={app.command.isPending} onClick={app.resume}>Resume collection<ArrowUpRight size={16}/></Button><Button id="btn-cancel" hidden={!app.canCancel} variant="destructive" disabled={app.command.isPending} onClick={app.cancel}>Cancel collection</Button></div><ErrorNotice error={app.command.error}/></div>
+      <div className="job-summary"><div className="job-progress"><span className="muted">{app.completeStages} of {app.totalStages} stages complete · {app.elapsed}</span><div className="stage-meter" data-status={app.canCancel?"running":app.detail.data?.errorText?"error":"idle"} aria-hidden="true">{Array.from({length:app.totalStages},(_,i)=><span key={i} data-filled={i<app.completeStages} data-next={i===app.completeStages}/>)}</div></div><div className="actions"><Button id="btn-resume" hidden={!app.canResume} disabled={app.command.isPending} onClick={app.resume}>Resume collection<ArrowUpRight size={16}/></Button><Button id="btn-cancel" hidden={!app.canCancel} variant="destructive" disabled={app.command.isPending} onClick={app.cancel}>Cancel collection</Button></div><ErrorNotice error={app.command.error}/></div>
       <p id="launch-status" className="muted" role="status">{app.launchStatus}</p>
       {app.detail.data?.errorText&&<div id="error-banner" role="alert" className="notice notice-error error-banner"><CircleAlert size={18} aria-hidden="true"/><p className="error-advice">{app.recovery.advice}</p><p className="error-detail">{app.detail.data.errorText}</p>{app.recovery.account&&<Button variant="secondary" onClick={app.account}>Open account</Button>}</div>}
       <nav className="detail-tabs" aria-label="Collection views"><Button variant="ghost" data-view="results" {...app.viewProps("results")}>Results</Button><Button variant="ghost" data-view="progress" {...app.viewProps("progress")}>State machine</Button></nav>
