@@ -252,4 +252,6 @@ export const CHECKS: CheckEntry[] = [
     commands: [["bun", "run", "dash:build"], ["bun", "test", "src/dashboard/ui.test.ts"]] },
   { area: "go", covers: "job engine, download, unique, analyze, video probing",
     commands: [["go", "test", "./cmd/...", "./internal/..."]] },
+  { area: "fresh-install", covers: "what a new user sees: clones this checkout's HEAD into a temp folder and runs the quick start with no credentials",
+    commands: [["bash", "scripts/fresh-install-check.sh"]] },
 ];
