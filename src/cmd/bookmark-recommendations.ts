@@ -280,8 +280,43 @@ async function run(): Promise<void> {
   if (state.status !== "complete" && state.status !== "stopped") throw new Error(`Run ended ${state.status}`);
 }
 
-const command = args(process.argv.slice(2));
-withAccountLock(command.account, run).catch(error => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+const USAGE = `patronum saved — the signed-in account's Explore recommendations and bookmarks
+
+USAGE
+  patronum saved --account <handle> --inspect
+  patronum saved --account <handle> --target <count>
+  patronum saved --account <handle> --reconcile-only
+
+OPTIONS
+  --account <handle>   The signed-in Instagram account (required; no @, no URL)
+  --inspect            Read the recommendations; change nothing
+  --target <count>     Save posts to the account's bookmarks until it holds <count> (1 to 2000).
+                       This changes the Instagram account.
+  --reconcile-only     Re-read saved dates for posts already recorded; save nothing
+  -h, --help           Help
+
+EXIT CODES
+  0 ok · 1 failed · 2 usage
+`;
+
+let command!: ReturnType<typeof args>;
+
+function main(argv: string[]): void {
+  if (argv.includes("--help") || argv.includes("-h")) {
+    console.log(USAGE);
+    return;
+  }
+  try {
+    command = args(argv);
+  } catch (error) {
+    console.error(`error: ${error instanceof Error ? error.message : String(error)}\n\n${USAGE}`);
+    process.exitCode = 2;
+    return;
+  }
+  withAccountLock(command.account, run).catch(error => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}
+
+main(process.argv.slice(2));
