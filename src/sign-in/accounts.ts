@@ -18,6 +18,19 @@ export type Account = {
  *   IG_PASS / INSTAGRAM_PASS / IG_PASSWORD
  *   IG_TOTP_SECRET / INSTAGRAM_TOTP_SECRET (optional)
  */
+/**
+ * No account is configured. It is a sign-in failure (exit 3), not a transient
+ * one: retrying cannot help until .env names an account.
+ */
+export class MissingCredentialsError extends Error {
+  readonly code = "auth" as const;
+  readonly state = "missing-credentials" as const;
+  constructor() {
+    super("Instagram credentials missing. Set IG_USER and IG_PASS in .env");
+    this.name = "MissingCredentialsError";
+  }
+}
+
 export function getAccount(): Account {
   const user =
     process.env.IG_USER?.trim() ||
@@ -34,9 +47,7 @@ export function getAccount(): Account {
     undefined;
 
   if (!user || !pass) {
-    throw new Error(
-      "Instagram credentials missing. Set IG_USER and IG_PASS in .env",
-    );
+    throw new MissingCredentialsError();
   }
 
   return {

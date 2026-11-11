@@ -1,7 +1,7 @@
 import { CaptchaSolveError } from "../sign-in/captcha/solver.js";
 import "dotenv/config";
 import { isAuthError } from "../sign-in/auth-check.js";
-import { getAccount } from "../sign-in/accounts.js";
+import { MissingCredentialsError, getAccount } from "../sign-in/accounts.js";
 import { loginInstagram } from "../sign-in/login.js";
 import { openAuthenticatedSession } from "../sign-in/session.js";
 import {
@@ -263,7 +263,9 @@ if (isCliEntry()) {
       ...(isAuthError(err) ? { state: err.state } : {}),
       ...(manual ? { state: "checkpoint", manualRequired: true } : {}),
       ...(automatic ? { state: "checkpoint", manualRequired: false, captcha: err.result } : {}),
-      hint: automatic
+      hint: err instanceof MissingCredentialsError
+        ? "Set IG_USER and IG_PASS in .env, then run: patronum login"
+        : automatic
         ? "Automatic verification stopped. Inspect the CAPTCHA diagnostics and retry after resolving the reported cause."
         : manual
         ? "Use Open login browser, complete verification in Chrome, close that window, then Check session."

@@ -310,20 +310,23 @@ async function showJob(flags: Flags): Promise<void> {
   const id = flags.rest[0];
   if (!id) throw new UsageError("a workflow id is required", "list ids with: patronum jobs");
   const { store, db } = await openJobs();
-  if (!db) throw new UsageError("no job database yet", "no job has run in this checkout");
+  const notFound = (hint: string, text: string) => {
+    print(flags, { ok: false, error: "not_found", id, hint }, () => text);
+    process.exitCode = 1;
+  };
+  if (!db) return notFound("no job has run in this checkout; start one from the dashboard: patronum dashboard", `No job with id ${id}: no job has run in this checkout yet.\nStart one from the dashboard: patronum dashboard`);
   try {
     const job = store.getWorkflow(db, id);
-    if (!job) {
-      print(flags, { ok: false, error: "not_found", id, hint: "patronum jobs" }, () => `No job with id ${id}. List ids with: patronum jobs`);
-      process.exitCode = 1;
-      return;
-    }
+    if (!job) return notFound("patronum jobs", `No job with id ${id}. List ids with: patronum jobs`);
     const steps = store.getSteps(db, id);
     const events = store.getEvents(db, id) as Record<string, unknown>;
     const childSteps = steps.flatMap((step: any) => step.childWorkflowId ? store.getSteps(db, step.childWorkflowId) : []);
     const derived = store.deriveStages([...steps, ...childSteps], events as any, job.status);
     const error = store.displayErrorText(events, steps, job);
-    const stages = (Object.values(derived.stages) as any[]).map((stage) => ({ name: stage.name, state: stage.state }));
+    // Knowledge is retired: show it only for an old job that actually ran it.
+    const stages = (Object.values(derived.stages) as any[])
+      .filter((stage) => stage.name !== "knowledge" || stage.state !== "idle")
+      .map((stage) => ({ name: stage.name, state: stage.state }));
     print(flags, { ok: true, job: { id: job.id, handle: job.handle, status: job.status, createdAt: job.createdAt, updatedAt: job.updatedAt }, currentStage: derived.currentStage, stages, error, logs: `${layout.jobLogs}/${id}` },
       () => [`${job.id}  ${job.status}  ${job.handle || ""}`, `Stage  ${derived.currentStage ?? "-"}`, table(stages.map((stage) => [`  ${stage.name}`, stage.state])), ...(error ? ["", `Error: ${error}`] : []), `Logs   ${layout.jobLogs}/${id}`].join("\n"));
   } finally { db.close(); }
