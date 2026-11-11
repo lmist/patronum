@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { REPO_ROOT } from "../paths.js";
 import { CHECKS, COMMANDS, MODULES } from "./patronum-catalogue.js";
 import { LOGO } from "./patronum-logo.js";
-import { overview, parseFlags, suggest } from "./patronum.js";
+import { commandList, overview, parseFlags, suggest } from "./patronum.js";
 import { skillGuide, skillStatus, skillStub, skillTarget } from "./patronum-skill.js";
 
 const CLI = join(REPO_ROOT, "src/cmd/patronum.ts");
@@ -94,6 +94,18 @@ describe("patronum command line", () => {
     for (const command of COMMANDS) expect(text).toContain(`  ${command.name}`);
   });
 
+  it("lists every command with its usage, an example and its side effects", async () => {
+    const result = await run("commands");
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trimEnd()).toBe(commandList());
+    expect(commandList()).not.toBe(overview());
+    for (const command of COMMANDS) {
+      expect(commandList()).toContain(`  Usage:        ${command.usage}`);
+      expect(commandList()).toContain(`  Example:      ${command.examples[0]}`);
+    }
+    expect(commandList().match(/Side effects:/g)?.length).toBe(COMMANDS.length);
+  });
+
   it("separates flags, values and positional arguments", () => {
     expect(parseFlags(["some_handle", "--json"])).toMatchObject({ json: true, rest: ["some_handle"] });
     expect(parseFlags(["--status", "ERROR", "--limit=3"], ["status", "limit"]).values).toEqual({ status: "ERROR", limit: "3" });
@@ -141,6 +153,6 @@ describe("patronum command line", () => {
   it("passes a run command's help and exit code through", async () => {
     const result = await run("collect", "--help");
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("scrape-profile");
+    expect(result.stdout).toContain("patronum collect --url");
   });
 });

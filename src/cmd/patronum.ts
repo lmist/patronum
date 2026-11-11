@@ -83,8 +83,7 @@ function table(rows: string[][]): string {
 
 function commandHelp(command: CommandEntry): string {
   const lines = [`patronum ${command.name} — ${command.summary}`, "", `Usage: ${command.usage}`, "", "Examples:", ...command.examples.map((example) => `  ${example}`)];
-  const effects = [command.opensBrowser && "opens Chrome", command.changesState && "changes files or account state"].filter(Boolean);
-  lines.push("", `Side effects: ${effects.length ? effects.join("; ") : "none"}`);
+  lines.push("", `Side effects: ${sideEffects(command)}`);
   if (command.dashboardFirst) lines.push(`Dashboard first: ${command.dashboardFirst}`);
   if (command.runs) lines.push(`Runs: ${command.runs.join(" ")}`);
   return lines.join("\n");
@@ -112,8 +111,33 @@ export function overview(): string {
 
 // ——— inspect commands ———
 
+function sideEffects(command: CommandEntry): string {
+  const effects = [command.opensBrowser && "opens Chrome", command.changesState && "changes files or account state"].filter(Boolean);
+  return effects.length ? effects.join("; ") : "none";
+}
+
+/** Every command with its usage, an example and its side effects. The overview is `patronum --help`. */
+export function commandList(): string {
+  const entry = (command: CommandEntry) => [
+    `${command.name} — ${command.summary}`,
+    `  Usage:        ${command.usage}`,
+    `  Example:      ${command.examples[0]}`,
+    `  Side effects: ${sideEffects(command)}`,
+    ...(command.dashboardFirst ? [`  Dashboard:    ${command.dashboardFirst}`] : []),
+  ].join("\n");
+  const section = (title: string, kind: CommandEntry["kind"]) => [title, "", COMMANDS.filter((command) => command.kind === kind).map(entry).join("\n\n")];
+  return [
+    ...section("LOOK (reads local files only; add --json for one JSON document)", "inspect"),
+    "",
+    ...section("DO (hands over to the real program; output and exit code pass through)", "run"),
+    "",
+    `Exit codes: ${Object.entries(EXIT_CODES).map(([code, meaning]) => `${code} ${meaning.split(";")[0]}`).join(" · ")}`,
+    "Short overview: patronum --help     Machine-readable: patronum commands --json",
+  ].join("\n");
+}
+
 function showCommands(flags: Flags): void {
-  print(flags, { ok: true, exitCodes: EXIT_CODES, commands: COMMANDS }, overview);
+  print(flags, { ok: true, exitCodes: EXIT_CODES, commands: COMMANDS }, commandList);
 }
 
 function showMap(flags: Flags): void {
