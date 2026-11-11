@@ -59,6 +59,9 @@ export function isLlmError(err: unknown): err is LlmError {
 /** Match the Alibaba Token Plan "usage limit" / 2056 style quota exhaust. */
 const QUOTA_RE =
   /\b(?:2056|token[\s_-]*plan[\s_-]*(?:usage|exhaust)|usage[\s_-]*limit|insufficient[_\s-]*quota|quota[\s_-]*exhaust|rate[\s_-]*limit)\b/i;
+/** The key is fine but the plan does not include the model (Alibaba: 403 AccessDenied.Unpurchased). */
+const NO_PLAN_RE =
+  /\b(?:AccessDenied\.Unpurchased|unpurchased|access to model denied|not eligible for using the model)\b/i;
 const BAD_KEY_RE =
   /\b(?:invalid[_\s-]*api[_\s-]*key|authentication[_\s-]*failed|unauthorized|invalid[_\s-]*credentials|401)\b/i;
 const BAD_MODEL_RE =
@@ -97,6 +100,11 @@ export function isProviderError(err: unknown): LlmError | null {
 
   const hay = `${raw}\n${causeMsg}\n${codeStr}`;
 
+  if (NO_PLAN_RE.test(hay)) {
+    return new LlmError("quota", `LLM plan does not cover this model: ${firstLine(raw)}`, {
+      status: statusN,
+    });
+  }
   if (QUOTA_RE.test(hay) || statusN === 429) {
     return new LlmError("quota", `LLM quota/plan exhausted: ${firstLine(raw)}`, {
       status: statusN,
@@ -229,6 +237,17 @@ export async function pingLlm(opts: {
   }
 
   // Classify by body first (Alibaba often uses 200/400 for quota with body code 2056)
+  if (NO_PLAN_RE.test(bodyText)) {
+    return {
+      ok: false,
+      kind: "quota",
+      model: opts.model,
+      baseUrl: base,
+      status,
+      reason: `the key works but its plan does not cover model ${apiModelId(opts.model)}; buy or renew the plan (status=${status}): ${bodySnippet}`,
+      latencyMs,
+    };
+  }
   if (QUOTA_RE.test(bodyText) || status === 429) {
     return {
       ok: false,

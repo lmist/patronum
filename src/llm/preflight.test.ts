@@ -141,6 +141,28 @@ describe("pingLlm classification", () => {
     assert.match(res.reason, /2056|Token Plan|usage limit/i);
   });
 
+  it("classifies 403 AccessDenied.Unpurchased as a plan problem, not a bad key", async () => {
+    const { baseUrl, close } = await withServer(
+      () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              message: "Access to model denied. Please make sure you are eligible for using the model.",
+              type: "AccessDenied.Unpurchased",
+              code: "AccessDenied.Unpurchased",
+            },
+          }),
+          { status: 403 },
+        ),
+    );
+    after(close);
+    const res = await pingLlm({ baseUrl, apiKey: "sk", model: "openai/m" });
+    assert.equal(res.kind, "quota");
+    assert.match(res.reason, /plan does not cover model m\b/);
+    assert.match(res.reason, /AccessDenied\.Unpurchased/);
+    assert.equal(isProviderError(new Error("403 AccessDenied.Unpurchased: Access to model denied"))?.kind, "quota");
+  });
+
   it("classifies a closed port as unreachable", async () => {
     const port = await findClosedPort();
     const res = await pingLlm({
