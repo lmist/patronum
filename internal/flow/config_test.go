@@ -1,6 +1,9 @@
 package flow
 
 import (
+	"bytes"
+	"context"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -123,15 +126,31 @@ func TestDataDirTracksSQLiteURL(t *testing.T) {
 
 func TestSQLitePathParsing(t *testing.T) {
 	cases := map[string]string{
-		"sqlite:/tmp/x.db":     "/tmp/x.db",
-		"sqlite:///tmp/x.db":   "/tmp/x.db",
-		"sqlite:relative.db":   "relative.db",
-		"sqlite::memory:":      "",
-		"postgres://x/y":       "",
+		"sqlite:/tmp/x.db":   "/tmp/x.db",
+		"sqlite:///tmp/x.db": "/tmp/x.db",
+		"sqlite:relative.db": "relative.db",
+		"sqlite::memory:":    "",
+		"postgres://x/y":     "",
 	}
 	for in, want := range cases {
 		if got := sqlitePath(in); got != want {
 			t.Errorf("sqlitePath(%q)=%q want %q", in, got, want)
 		}
+	}
+}
+
+func TestQuietLoggerDropsInfoAndShutdownCancellations(t *testing.T) {
+	var out bytes.Buffer
+	logger := slog.New(shutdownFilter{slog.NewTextHandler(&out, &slog.HandlerOptions{Level: slog.LevelWarn})})
+	logger.Info("Initializing DBOS context")
+	logger.Error("Error dequeuing workflows from queue", "error", "failed to begin transaction: context canceled")
+	logger.With("service", "queue_runner").Warn("Exception listing database-backed queues", "error", context.Canceled)
+	logger.Error("database is locked", "error", "SQLITE_BUSY")
+	got := out.String()
+	if strings.Contains(got, "Initializing") || strings.Contains(got, "canceled") {
+		t.Fatalf("quiet logger let noise through:\n%s", got)
+	}
+	if !strings.Contains(got, "database is locked") {
+		t.Fatalf("quiet logger dropped a real error:\n%s", got)
 	}
 }

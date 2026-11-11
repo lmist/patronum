@@ -473,7 +473,7 @@ func ensureClientDatabase(ctx context.Context) error {
 	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
 		return statErr
 	}
-	host, release, err := flow.NewHostContext(ctx)
+	host, release, err := flow.NewQuietHostContext(ctx)
 	if err != nil {
 		return err
 	}

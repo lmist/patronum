@@ -108,6 +108,10 @@ for name in download unique analyze; do
     && pass "$name -h uses the patronum name" || fail "$name -h uses the patronum name" "$(grep -nE 'Usage|go-build|scrape-profile' <<<"$out" | head -3)"
 done
 
+noise="$(./bin/patronum flow doctor 2>&1 >/dev/null | grep -v '^\[patronum\]')"
+[[ -z "$noise" ]] && pass "flow doctor prints no engine logs" || fail "flow doctor prints no engine logs" "$(head -2 <<<"$noise")"
+check "flow doctor prints one JSON document" bash -c "./bin/patronum flow doctor 2>/dev/null | jq -e '.journalMode == \"wal\"'"
+
 echo "exit codes with nothing set up"
 run p preflight
 [[ $code -eq 4 ]] && pass "preflight exits 4 without a model key" || fail "preflight exits 4 without a model key" "exit $code"

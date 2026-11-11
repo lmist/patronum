@@ -185,6 +185,17 @@ func LockPath() (string, error) {
 //	dbos.RegisterWorkflow(ctx, ...)
 //	if err := dbos.Launch(ctx); err != nil { return err }
 func NewHostContext(ctx context.Context) (dbos.Context, func(), error) {
+	return newHostContext(ctx, defaultLogger())
+}
+
+// NewQuietHostContext is NewHostContext for commands that only read: it is
+// used to create an empty system database, so the engine's start-up and
+// shutdown chatter would be noise around the one JSON document they print.
+func NewQuietHostContext(ctx context.Context) (dbos.Context, func(), error) {
+	return newHostContext(ctx, quietLogger())
+}
+
+func newHostContext(ctx context.Context, logger *slog.Logger) (dbos.Context, func(), error) {
 	dir, err := DataDir()
 	if err != nil {
 		return nil, nil, err
@@ -206,7 +217,7 @@ func NewHostContext(ctx context.Context) (dbos.Context, func(), error) {
 		ApplicationVersion: ApplicationVersion,
 		DatabaseURL:        dbURL,
 		AdminServer:        false,
-		Logger:             defaultLogger(),
+		Logger:             logger,
 	})
 	if err != nil {
 		release()
@@ -227,7 +238,7 @@ func NewClient(ctx context.Context) (dbos.Client, error) {
 	client, err := dbos.NewClient(ctx, dbos.ClientConfig{
 		AppName:     AppName,
 		DatabaseURL: dbURL,
-		Logger:      defaultLogger(),
+		Logger:      quietLogger(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("flow: dbos.NewClient: %w", err)
@@ -243,4 +254,33 @@ func Shutdown(c dbos.Client, timeout time.Duration) error {
 
 func defaultLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+}
+
+// quietLogger is for clients and other read-only use: warnings and errors
+// only, minus the ones DBOS logs while its own background loops are being
+// cancelled at shutdown ("context canceled"), which report nothing wrong.
+func quietLogger() *slog.Logger {
+	return slog.New(shutdownFilter{slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn})})
+}
+
+type shutdownFilter struct{ slog.Handler }
+
+func (f shutdownFilter) Handle(ctx context.Context, record slog.Record) error {
+	cancelled := false
+	record.Attrs(func(attr slog.Attr) bool {
+		cancelled = strings.Contains(attr.Value.String(), context.Canceled.Error())
+		return !cancelled
+	})
+	if cancelled {
+		return nil
+	}
+	return f.Handler.Handle(ctx, record)
+}
+
+func (f shutdownFilter) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return shutdownFilter{f.Handler.WithAttrs(attrs)}
+}
+
+func (f shutdownFilter) WithGroup(name string) slog.Handler {
+	return shutdownFilter{f.Handler.WithGroup(name)}
 }
