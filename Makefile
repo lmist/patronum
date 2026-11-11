@@ -1,13 +1,15 @@
 # patronum — repo-local beads
 #
 # Always prefer ./bin/bd over whatever `bd` is on PATH.
-# System Homebrew/local copies drift; this one is a pinned GitHub release.
+# System Homebrew/local copies drift; this one is the pinned release that
+# mise installs. `make bd` links bin/bd to it; nothing is downloaded or built here.
 
 BIN    := $(CURDIR)/bin
 BD     := $(BIN)/bd
 PREFIX ?= pt
 BEADS_VERSION ?= 1.2.1
 BEADS_REPOSITORY ?= gastownhall/beads
+BEADS_TOOL := github:$(BEADS_REPOSITORY)@$(BEADS_VERSION)
 
 .PHONY: all bd bootstrap formulas doctor hooks clean igflow-recovery debug-setup debug-check debug-go debug-lldb
 
@@ -17,9 +19,12 @@ DEBUG_TEST ?= ^TestSelectPostMedia$$
 all: bd
 
 bd:
+	@command -v mise >/dev/null || { echo "make bd needs mise (https://mise.jdx.dev): it installs the pinned Beads release" >&2; exit 1; }
 	@mkdir -p $(BIN)
-	BEADS_VERSION=$(BEADS_VERSION) BEADS_REPOSITORY=$(BEADS_REPOSITORY) ./scripts/install-bd.sh $(BD)
-	@./bin/bd version
+	@mise install --quiet $(BEADS_TOOL)
+	@ln -sfn "$$(mise where $(BEADS_TOOL))/bd" $(BD)
+	@if [ -d .beads ]; then chmod 700 .beads; fi
+	@./bin/bd version | head -1
 
 bootstrap:
 	@./scripts/bootstrap.sh

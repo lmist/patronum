@@ -12,7 +12,8 @@ bd prime
 bd ready
 ```
 
-`./bin/bd` is the verified `gastownhall/beads` **v1.2.1** release binary.
+`./bin/bd` is the `gastownhall/beads` **v1.2.1** release binary, installed by
+mise and linked into place by `make bd`.
 `./scripts/bd` execs that binary and refuses to fall through to Homebrew.
 
 ## Why this is not a prompt
@@ -35,7 +36,7 @@ replacement for "paste this prompt into a new agent" is:
 - Never use `bd edit` (opens `$EDITOR`). Use `bd update` flags or `--description=-`.
 - `bd dep add <this> <that>` means **this depends on that**.
 - Persist insights with `bd remember`, not MEMORY.md.
-- Do not commit `bin/bd` (platform-specific). Rebuild with `make bd`.
+- Do not commit `bin/bd` (platform-specific). Relink with `make bd`.
 - Do not `git push` unless the user asked and `origin` exists.
 - Prefer non-interactive flags (`cp -f`, `rm -f`, `BD_NON_INTERACTIVE=1`).
 

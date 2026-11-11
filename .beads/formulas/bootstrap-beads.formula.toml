@@ -42,7 +42,7 @@ needs = ["vendor-subtree"]
 description = """
 Resolver: if bin/bd is executable and `bin/bd version` starts with 1.2, close as done.
 Else `make bd`.
-Acceptance: `./bin/bd version` reports 1.2.x built from vendor/beads.
+Acceptance: `./bin/bd version` reports 1.2.x, installed by mise.
 """
 
 [[steps]]

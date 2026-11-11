@@ -29,7 +29,7 @@ src/dashboard/.test-*
 .DS_Store
 Icon
 
-# Repo-local beads binary (rebuild with `make bd`)
+# Repo-local beads binary (relink with `make bd`)
 /bin/bd
 /bin/bd.exe
 

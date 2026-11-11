@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="$ROOT/bin/bd"
 if [[ ! -x "$BIN" ]]; then
-  echo "patronum: $BIN missing — run: make bd" >&2
+  echo "patronum: $BIN missing — run: make bd (needs mise)" >&2
   exit 127
 fi
 exec "$BIN" "$@"

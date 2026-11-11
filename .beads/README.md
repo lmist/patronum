@@ -1,6 +1,6 @@
 # Beads in this repo
 
-Issue prefix: **pt**. Binary: **./bin/bd** (v1.2.1 from `vendor/beads`).
+Issue prefix: **pt**. Binary: **./bin/bd** (v1.2.1, installed by mise; `make bd` links it).
 
 Do not follow the generic beads README. Start at `/AGENT_INSTRUCTIONS.md` and
 `/docs/RESOLVERS.md`. Patronum's product map is `/AGENTS.md`.

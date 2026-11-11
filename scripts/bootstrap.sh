@@ -37,7 +37,7 @@ ensure_binary() {
     log "bin/bd already present: $(bin/bd version 2>/dev/null | head -1)"
     return 0
   fi
-  log "installing bin/bd from the pinned release"
+  log "linking bin/bd to the pinned release from mise"
   make bd
 }
 

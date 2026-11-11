@@ -24,7 +24,7 @@ Never use `/opt/homebrew/bin/bd` or `~/.local/bin/bd` in this repo.
 
 | You observe | Do this |
 | --- | --- |
-| No executable `bin/bd` | `make bd` (downloads the pinned release) |
+| No executable `bin/bd` | `make bd` (mise installs the pinned release; `bin/bd` links to it) |
 | `bin/bd` exists, no `.beads/metadata.json` | `BD_NON_INTERACTIVE=1 ./bin/bd init --non-interactive --role maintainer -p pt --skip-agents --init-if-missing` |
 | `.beads/` exists but `bd info` fails | `./bin/bd bootstrap --yes` (never `bd init --force`) |
 | `bd` on PATH is not `./bin/bd` | `export PATH="$PWD/bin:$PATH"` and ignore the "multiple binaries" warning |
@@ -198,8 +198,7 @@ Pinned: **`gastownhall/beads` release v1.2.1**.
 
 | Path | Role |
 | --- | --- |
-| `scripts/install-bd.sh` | downloads and verifies the pinned release artifact |
-| `bin/bd` | verified release binary (gitignored) |
+| `bin/bd` | link to the pinned release in the mise installs folder (gitignored) |
 | `scripts/bd` | wrapper that refuses PATH fallback |
 | `scripts/bootstrap.sh` | pre-bd resolver |
 | `.beads/formulas/` | the workflows |

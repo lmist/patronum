@@ -13,7 +13,7 @@ Drive the app so the app drives the job. Start, retry, resume and cancel collect
 ## Start a session
 
 1. `git status --short`; preserve existing edits.
-2. `./bin/bd prime` and `./bin/bd ready`. Claim a matching issue (`./bin/bd update <id> --claim`) or create one before changing code. Tracking rules: [AGENT_INSTRUCTIONS.md](./AGENT_INSTRUCTIONS.md); tracker problems: [docs/RESOLVERS.md](./docs/RESOLVERS.md). If `bin/bd` is absent run `make bd`. Never use Homebrew `bd` or `bd init --force`.
+2. `./bin/bd prime` and `./bin/bd ready`. Claim a matching issue (`./bin/bd update <id> --claim`) or create one before changing code. Tracking rules: [AGENT_INSTRUCTIONS.md](./AGENT_INSTRUCTIONS.md); tracker problems: [docs/RESOLVERS.md](./docs/RESOLVERS.md). If `bin/bd` is absent run `make bd`, which links it to the pinned release that mise installs. Never use Homebrew `bd` or `bd init --force`.
 3. `./bin/patronum status --json`, then `./bin/patronum commands --json` for every command with its side effects. `./bin/patronum skill show` prints the day-to-day guide ([source](./src/cmd/patronum-skill.md)); the checked-in [SKILL.md](./.claude/skills/patronum/SKILL.md) is a stub written by `./bin/patronum skill setup`.
 
 Commit and push only when asked.
