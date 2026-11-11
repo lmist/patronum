@@ -118,8 +118,8 @@ gc options:
 
 Exit codes: 0 ok; 1 job failed; 2 usage; 3 host lock held; 4 database error;
 5 precondition failed (Instagram auth, LLM, or missing env). igflow loads
-.env from the repo root (existing env wins). For exit 5, run "bun run login"
-or fix QWEN_API_KEY in .env, then resume the workflow.
+.env from the repo root (existing env wins). For exit 5, run "patronum login"
+or fix QWEN_API_KEY in .env, then resume the job from the dashboard.
 `
 }
 

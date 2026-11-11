@@ -15,12 +15,12 @@ import { resolveQwenApiKey, resolveQwenBaseUrl, resolveQwenModelName } from "../
 
 /** Human- and agent-readable CLI help (also printed for unknown commands). */
 export function helpText(): string {
-  return `patronum — Instagram auth + scrape via local Stagehand
+  return `patronum login | session | preflight — sign one Instagram account in (local Stagehand)
 
 USAGE
-  bun run start -- [command] [options]
-  bun run <script> -- [options]
-  bun src/cmd/cli.ts [command] [options]
+  patronum login [--keep-open] [--fresh-profile]
+  patronum session [--check-only]
+  patronum preflight
 
 COMMANDS
   help, -h, --help     Show this help
@@ -47,27 +47,17 @@ ENV (in .env)
   PATRONUM_AUTH_CACHE_DIR      Optional isolated action cache path
   HEADLESS=true        Run Chrome headless (default: visible window)
 
-BUN SCRIPTS
-  bun run login [-- --fresh-profile]
-  bun run session
-  bun run start
-  bun run notifications
-  bun run map | bun run map:deep
-  bun run typecheck
-  bun test
-
 EXAMPLES
-  bun run login
-  bun run login -- --fresh-profile
-  bun run session
-  bun run notifications
-  bun run map:deep
+  patronum preflight
+  patronum login
+  patronum login --fresh-profile
+  patronum session --check-only
 
 OUTPUT
   JSON with ok, user, sessionId, liveUrl (local profile path), didLogin
   Exit 0 on success; login/session exit 3 on auth failure, 1 on runtime failure.
   preflight exits 4 on any LLM problem (missing/bad key, bad model, quota,
-  unreachable). scrape-profile follows the extended contract:
+  unreachable). patronum collect follows the extended contract:
   0 ok · 1 retryable · 2 usage · 3 auth (non-retryable) · 4 llm (non-retryable).
 
 DATA

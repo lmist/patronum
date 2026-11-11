@@ -22,8 +22,8 @@ describe("CLI help", () => {
       "IG_USER",
       "data/chrome-profile",
       "AGENTS.md",
-      "bun run",
-      "notifications",
+      "patronum login",
+      "patronum session --check-only",
       "local Stagehand",
     ]) {
       assert.match(text, new RegExp(needle.replace(".", "\\.")));
@@ -32,6 +32,8 @@ describe("CLI help", () => {
     assert.doesNotMatch(text, /accounts\.json/);
     assert.doesNotMatch(text, /Browserbase contexts/);
     assert.doesNotMatch(text, /DEEPSEEK_API_KEY/);
+    // the patronum command is the only name a user sees
+    assert.doesNotMatch(text, /bun run|bun src\//);
   });
 
   it("bun src/cmd/cli.ts --help prints usage and exits 0", () => {

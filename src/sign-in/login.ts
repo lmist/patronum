@@ -1100,7 +1100,7 @@ export async function loginInstagram(
       );
     }
     console.log(options.keepOpen
-      ? "[login] Chrome left open. Complete verification, then close this window before running bun run session."
+      ? "[login] Chrome left open. Complete verification, then close this window before running patronum session."
       : "[login] browser closed; cookies remain in local Chrome profile");
   }
 }

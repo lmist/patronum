@@ -487,7 +487,7 @@ func TestRunPreflight_AuthMissingCookies(t *testing.T) {
 	if cliErr.Retryable {
 		t.Fatal("auth failure should be non-retryable")
 	}
-	if !strings.Contains(cliErr.Msg, "bun run login") {
+	if !strings.Contains(cliErr.Msg, "patronum login") {
 		t.Fatalf("error should contain hint: %v", cliErr.Msg)
 	}
 }

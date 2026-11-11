@@ -99,10 +99,10 @@ export function parseArgs(argv: string[]) {
 }
 
 export function helpText(): string {
-  return `scrape-profile — deep Instagram profile scrape (local Stagehand)
+  return `patronum collect — collect one Instagram profile: header, grid, every post (local Stagehand)
 
 USAGE
-  bun run scrape-profile -- --url <profile_url> [options]
+  patronum collect --url <profile_url> [options]
 
 OPTIONS
   --url <url>          Profile URL (required)
@@ -127,7 +127,7 @@ EXIT CODES
   1  failure (retryable) — network hiccup, page shape drift, transient extract
   2  usage — missing/invalid CLI args
   3  auth — Instagram not authenticated (login/totp/checkpoint or login wall);
-        non-retryable; no profile JSON is written. Run: bun run login
+        non-retryable; no profile JSON is written. Run: patronum login
   4  llm — Qwen/LLM missing, key rejected, model absent, or quota exhausted;
         non-retryable. Set QWEN_API_KEY / DASHSCOPE_API_KEY or top up the plan.
 `;
@@ -161,7 +161,7 @@ if (import.meta.main) {
           reason: err.evidence?.reason ?? err.message,
           state: err.state ?? "unknown",
           hint:
-            "bun run login (fix IG_TOTP_SECRET or finish 2FA in the local Chrome), then re-run",
+            "patronum login (fix IG_TOTP_SECRET or finish 2FA in the local Chrome), then re-run",
         }),
       );
       process.exit(3);

@@ -58,9 +58,9 @@ type PreflightTool struct {
 
 // Hints surfaced in error events so humans know how to recover.
 const (
-	HintAuth = "run `bun run login` (or finish 2FA in the local Chrome), then `igflow resume <id>`"
-	HintLLM  = "fix QWEN_API_KEY / Token Plan in .env, then `igflow resume <id>`"
-	HintEnv  = "put IG_USER, IG_PASS, and QWEN_API_KEY in .env (igflow loads it) or export them, then `igflow resume <id>`"
+	HintAuth = "run `patronum login` (or finish 2FA in the local Chrome), then resume the job from the dashboard"
+	HintLLM  = "fix QWEN_API_KEY / Token Plan in .env, then resume the job from the dashboard"
+	HintEnv  = "put IG_USER, IG_PASS, and QWEN_API_KEY in .env or export them, then resume the job from the dashboard"
 )
 
 func formatLLMPreflightMsg(kind, msg string) string {
