@@ -77,7 +77,12 @@ async function refused(page: Page): Promise<CodeEntryOutcome> {
 export async function enterCodeOnce(stagehand: Stagehand, code: string, settleMs = 15_000): Promise<CodeEntryOutcome> {
   const page = stagehand.context.pages()[0]!;
   const startUrl = page.url();
-  const selector = (await page.evaluate(FIND_CODE_INPUT)) as string | null;
+  // The two-factor page draws its form a moment after the address changes.
+  let selector: string | null = null;
+  for (const deadline = Date.now() + 5_000; Date.now() < deadline; await sleep(250)) {
+    selector = (await page.evaluate(FIND_CODE_INPUT)) as string | null;
+    if (selector) break;
+  }
   if (!selector) return "no-field";
 
   // A refusal left on screen from an earlier code says nothing about this one.
