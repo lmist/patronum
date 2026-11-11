@@ -165,9 +165,6 @@ Search paths: `.beads/formulas/` (this repo), then `~/.beads/formulas/`.
 
 ## 4. Session close
 
-This repo is conservative about git: **do not push** unless the user asked
-and `origin` exists.
-
 | Step | Command |
 | --- | --- |
 | File leftovers | `bd create` / `bd todo add` |
@@ -175,7 +172,7 @@ and `origin` exists.
 | Unclaim abandoned | `bd unclaim <id>` |
 | Persist an insight | `bd remember "…" --key <slug>` |
 | Quality | `make doctor` if you touched formulas/hooks |
-| Git | report `git status`; commit only if asked |
+| Git | commit and push finished work; report `git status` |
 | Handoff | next ready id + one sentence of context |
 
 Do not use `bd edit`. Use `bd update --description=-` via stdin for messy text.

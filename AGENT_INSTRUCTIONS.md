@@ -37,7 +37,6 @@ replacement for "paste this prompt into a new agent" is:
 - `bd dep add <this> <that>` means **this depends on that**.
 - Persist insights with `bd remember`, not MEMORY.md.
 - Do not commit `bin/bd` (platform-specific). Relink with `make bd`.
-- Do not `git push` unless the user asked and `origin` exists.
 - Prefer non-interactive flags (`cp -f`, `rm -f`, `BD_NON_INTERACTIVE=1`).
 
 ## Starting work
@@ -80,4 +79,4 @@ bd mol pour feature --var name=…
 1. `bd close` finished work; `bd create` leftovers.
 2. `bd remember` anything the next session will need.
 3. `make doctor` if you touched formulas or hooks.
-4. Report `git status`. Commit only if asked. Never push unprompted.
+4. Commit and push finished work, then report `git status`.
