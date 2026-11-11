@@ -13,8 +13,8 @@ export async function runCaptchaCLI(argv: string[]): Promise<number> {
   if (!command || ["help", "--help", "-h"].includes(command)) {
     console.log(`CAPTCHA image recognition
 
-  bun src/sign-in/captcha/cli.ts status
-  bun src/sign-in/captcha/cli.ts recognize --observation <observation.json> --backend local|vision
+  patronum captcha status
+  patronum captcha recognize --observation <observation.json> --backend local|vision
 
 Recognition prints a proposal only. Complete verification in the login browser.
 Local: CAPTCHA_LOCAL_PYTHON / CAPTCHA_LOCAL_MODEL (defaults under data/captcha).
