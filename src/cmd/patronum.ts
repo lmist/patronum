@@ -163,7 +163,6 @@ async function showStatus(flags: Flags): Promise<void> {
   if (!credentials.instagramUser || !credentials.instagramPassword) next.push("set IG_USER and IG_PASS in .env");
   if (!files.savedLogin && credentials.instagramUser) next.push("patronum login");
   if (!tools.go || !tools.ffmpeg || !tools.ffprobe) next.push("install go, ffmpeg and ffprobe for the media stages");
-  if (!tools.bd) next.push("make bd");
   if (!dashboard.running) next.push("patronum dashboard");
   const ready = credentials.model && credentials.instagramUser && credentials.instagramPassword && files.dependencies;
   const home = {
@@ -185,7 +184,7 @@ async function showStatus(flags: Flags): Promise<void> {
       "Credentials (presence only)",
       ...Object.entries(credentials).map(([name, value]) => `  ${mark(value)} ${name}`),
       "Tools",
-      ...Object.entries(tools).map(([name, value]) => `  ${mark(value)} ${name}${typeof value === "string" ? ` ${value}` : ""}`),
+      ...Object.entries(tools).map(([name, value]) => `  ${mark(value)} ${name}${typeof value === "string" ? ` ${value}` : ""}${name === "bd" ? "  (issue tracker; only for working on the code)" : ""}`),
       "Files",
       ...Object.entries(files).map(([name, value]) => `  ${mark(value)} ${name}`),
       `Dashboard   ${dashboard.running ? `running at ${dashboard.url}` : "not running"}`,

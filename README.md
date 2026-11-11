@@ -139,7 +139,10 @@ Bun and TypeScript drive the browser and the dashboard. Go runs the durable jobs
 ./bin/patronum check                 # list the test areas
 ./bin/patronum check types collect   # run some of them
 bun test src && go test ./...        # everything
+./bin/patronum check fresh-install   # clone this checkout and run the quick start as a new user
 ```
+
+Work is tracked in [Beads](https://github.com/gastownhall/beads). `make bd` links `bin/bd` to the pinned release, which [mise](https://mise.jdx.dev) installs; you do not need it to run Patronum. If you use direnv, `direnv allow` puts `bin/` on your `PATH`.
 
 Tests run against a throwaway home folder, never yours. People read [HUMANS.md](./HUMANS.md); agents start at [AGENTS.md](./AGENTS.md).
 
