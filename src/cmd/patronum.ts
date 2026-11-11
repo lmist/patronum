@@ -229,7 +229,7 @@ function showPaths(flags: Flags): void {
   const handle = flags.rest[0] ? requireHandle(flags.rest[0], "patronum paths [<handle>]") : undefined;
   const entry = (path: string) => ({ path, absolute: inHome(path), exists: existsSync(inHome(path)) });
   const shared = {
-    chromeProfile: entry(layout.chromeProfile), authCache: entry(layout.authCache), uiMap: entry(layout.uiMap), apiMap: entry(layout.apiMap),
+    chromeProfile: entry(process.env.PATRONUM_CHROME_PROFILE_DIR || layout.chromeProfile), authCache: entry(layout.authCache), uiMap: entry(layout.uiMap), apiMap: entry(layout.apiMap),
     profilesDir: entry(layout.profilesDir), jobsDb: entry(layout.jobsDb), jobLogs: entry(layout.jobLogs),
     captchaCaptures: entry(layout.captchaCaptures), bookmarksDir: entry(layout.bookmarksDir),
   };
