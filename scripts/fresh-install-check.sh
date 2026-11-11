@@ -91,6 +91,22 @@ for name in collect login session preflight; do
     && pass "$name --help uses the patronum name" || fail "$name --help uses the patronum name" "$(grep -nE 'bun run|scrape-profile —|bun src/' <<<"$out" | head -3)"
 done
 
+for name in saved map-api captcha; do
+  run p "$name" --help
+  [[ $code -eq 0 ]] && has "patronum $name" && ! has 'bun src/|map-network|^error:|at .*\.ts:[0-9]+' \
+    && pass "$name --help exits 0 and uses the patronum name" || fail "$name --help exits 0 and uses the patronum name" "exit $code: $(head -3 <<<"$out")"
+done
+for name in saved map-api; do
+  run p "$name" --no-such-option
+  [[ $code -eq 2 ]] && has "patronum $name" && ! has 'at .*\.ts:[0-9]+|map-network' \
+    && pass "$name with a bad option exits 2 without a stack trace" || fail "$name with a bad option exits 2 without a stack trace" "exit $code: $(head -3 <<<"$out")"
+done
+for name in download unique analyze; do
+  run p "$name" -h
+  grep -qE "^Usage: patronum $name" <<<"$out" && ! has 'go-build|scrape-profile' \
+    && pass "$name -h uses the patronum name" || fail "$name -h uses the patronum name" "$(grep -nE 'Usage|go-build|scrape-profile' <<<"$out" | head -3)"
+done
+
 echo "exit codes with nothing set up"
 run p preflight
 [[ $code -eq 4 ]] && pass "preflight exits 4 without a model key" || fail "preflight exits 4 without a model key" "exit $code"
@@ -102,6 +118,10 @@ hint="$(jq -r '.hint' <<<"$json" 2>/dev/null)"
 [[ "$hint" == *IG_USER* && "$hint" == *IG_PASS* && "$hint" != *Chrome* ]] && pass "session hint names IG_USER and IG_PASS, not Chrome" || fail "session hint names IG_USER and IG_PASS, not Chrome" "$hint"
 run p job nope --json
 [[ $code -eq 1 && "$(jq -r '.error' <<<"$out" 2>/dev/null)" == not_found ]] && pass "job <unknown id> exits 1 with not_found" || fail "job <unknown id> exits 1 with not_found" "exit $code: $out"
+run p jobs --status NOPE
+[[ $code -eq 2 ]] && has 'ERROR' && pass "jobs rejects an unknown --status" || fail "jobs rejects an unknown --status" "exit $code: $out"
+run p jobs --status error
+[[ $code -eq 0 ]] && pass "jobs accepts a lower-case --status" || fail "jobs accepts a lower-case --status" "exit $code: $out"
 run p jobs
 [[ $code -eq 0 ]] && pass "jobs exits 0 with no database" || fail "jobs exits 0 with no database" "exit $code"
 run p bogus

@@ -21,6 +21,7 @@ import { logoWith } from "./patronum-logo.js";
 import { installSkill, removeSkill, skillGuide, skillStatus, type SkillScope } from "./patronum-skill.js";
 
 const HANDLE = /^[A-Za-z0-9._]{1,40}$/;
+const JOB_STATUSES = ["PENDING", "ENQUEUED", "SUCCESS", "ERROR", "CANCELLED"];
 const DASHBOARD_URL = `http://127.0.0.1:${process.env.IGDASH_PORT ?? 7799}`;
 
 class UsageError extends Error {
@@ -292,6 +293,11 @@ async function showJobs(flags: Flags): Promise<void> {
   const limit = flags.values.limit == null ? 20 : Number(flags.values.limit);
   if (!Number.isInteger(limit) || limit < 1) throw new UsageError("--limit must be a whole number of 1 or more");
   if (flags.values.handle) requireHandle(flags.values.handle, "patronum jobs --handle <handle>");
+  if (flags.values.status != null) {
+    const status = flags.values.status.toUpperCase();
+    if (!JOB_STATUSES.includes(status)) throw new UsageError(`unknown job status "${flags.values.status}"`, `use one of: ${JOB_STATUSES.join(", ")}`);
+    flags.values.status = status;
+  }
   const { store, db } = await openJobs();
   if (!db) {
     print(flags, { ok: true, jobs: [], note: "no job database yet; no job has run in this checkout" }, () => "No job database yet; no job has run in this checkout.");
