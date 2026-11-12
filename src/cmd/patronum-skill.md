@@ -44,6 +44,17 @@ Collected data, the job database, logs and the saved login are in the **home fol
 
 Exit codes are the same everywhere: `0` ok, `1` failed (retry later), `2` usage, `3` Instagram sign-in, `4` model.
 
+## Whether a Chrome window appears
+
+| Started from | Window |
+| --- | --- |
+| A collection in the dashboard | hidden, unless "Show Chrome while collecting" is ticked in the form |
+| The dashboard's Account page (check saved login, sign in, complete verification) | always shown, so a person can step in |
+| The command line (`login`, `session`, `collect`, `map-api`) | shown, unless `.env` has `HEADLESS=true` |
+| `./bin/patronum login --keep-open` | always shown; it is for finishing a verification by hand |
+
+When someone asks to keep the browser out of their way, set `HEADLESS=true` in `.env` and say that the Account page still shows a window. Do not turn it on to get past a verification: a checkpoint needs the visible window.
+
 ## Rules
 
 1. **Jobs go through the dashboard.** Starting, resuming, retrying and cancelling a collection are done in the dashboard UI. Do not run `./bin/patronum collect`, `flow run`, `flow resume`, `download`, `unique`, `analyze` or `map-api` to operate a job unless the user explicitly asked for direct command-line operation. Reading is always fine: `jobs`, `job`, `profile`, `flow list`, `flow status`, `flow doctor`.
