@@ -29,7 +29,7 @@ export type CreateStagehandOptions = {
   userDataDir?: string;
   /** Keep browser alive after close (local Chrome process detaches). */
   keepAlive?: boolean;
-  /** Override headless (default: HEADLESS=true, else show window). */
+  /** Override headless (default: hidden; HEADLESS=false shows the window). */
   headless?: boolean;
 };
 
@@ -69,9 +69,10 @@ export function createStagehand(opts: CreateStagehandOptions = {}): Stagehand {
   mkdirSync(cacheDir, { recursive: true });
   mkdirSync(userDataDir, { recursive: true });
 
+  // Hidden unless asked for: HEADLESS=false (or 0) shows the window.
   const headless =
     opts.headless ??
-    (process.env.HEADLESS === "true" || process.env.HEADLESS === "1");
+    !(process.env.HEADLESS === "false" || process.env.HEADLESS === "0");
 
   // disableAPI: Stagehand LLM calls run locally against Qwen
   // cacheDir: local filesystem action cache

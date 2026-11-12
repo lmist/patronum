@@ -114,7 +114,7 @@ export function overview(): string {
 // ——— inspect commands ———
 
 function sideEffects(command: CommandEntry): string {
-  const effects = [command.opensBrowser && "opens Chrome", command.changesState && "changes files or account state"].filter(Boolean);
+  const effects = [command.opensBrowser && "runs Chrome (hidden unless HEADLESS=false)", command.changesState && "changes files or account state"].filter(Boolean);
   return effects.length ? effects.join("; ") : "none";
 }
 

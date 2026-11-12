@@ -60,7 +60,10 @@ export async function handleAction(req: Request) {
   if (!["preflight", "warm-session", "cold-login", "recover-login"].includes(action)) return json({ok:false,error:"Unknown action"},400);
   const busy = browserBusy();
   if (action !== "preflight" && busy) return json({ok:false,error:"A browser action is already running.",pid:busy.pid},409);
-  const env: Record<string,string> = {HEADLESS:"false"};
+  // Hidden like everything else, unless .env asks for the window. Completing a
+  // verification is the exception: a person has to see the page to do it.
+  const visible = action === "recover-login" || process.env.HEADLESS === "false" || process.env.HEADLESS === "0";
+  const env: Record<string,string> = {HEADLESS: visible ? "false" : "true"};
   let source: Launch | undefined;
   if (body.sourcePid != null) {
     refreshLaunches(); source = launches.get(Number(body.sourcePid));

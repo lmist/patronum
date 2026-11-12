@@ -38,22 +38,23 @@ Collected data, the job database, logs and the saved login are in the **home fol
 | Need | Command | Note |
 | --- | --- | --- |
 | Prove the model key works | `./bin/patronum preflight` | no browser; exit 4 names the problem |
-| Check the saved Instagram login | `./bin/patronum session --check-only` | opens Chrome |
-| Sign in | `./bin/patronum login` | opens Chrome; saves cookies |
+| Check the saved Instagram login | `./bin/patronum session --check-only` | runs Chrome, hidden |
+| Sign in | `./bin/patronum login` | runs Chrome, hidden; saves cookies |
 | Open the dashboard | `./bin/patronum dashboard` | http://127.0.0.1:7799 |
 
 Exit codes are the same everywhere: `0` ok, `1` failed (retry later), `2` usage, `3` Instagram sign-in, `4` model.
 
 ## Whether a Chrome window appears
 
-| Started from | Window |
-| --- | --- |
-| A collection in the dashboard | hidden, unless "Show Chrome while collecting" is ticked in the form |
-| The dashboard's Account page (check saved login, sign in, complete verification) | always shown, so a person can step in |
-| The command line (`login`, `session`, `collect`, `map-api`) | shown, unless `.env` has `HEADLESS=true` |
-| `./bin/patronum login --keep-open` | always shown; it is for finishing a verification by hand |
+Chrome runs hidden by default, from the command line and from the dashboard. A window opens only when a person has to act or asks for it:
 
-When someone asks to keep the browser out of their way, set `HEADLESS=true` in `.env` and say that the Account page still shows a window. Do not turn it on to get past a verification: a checkpoint needs the visible window.
+| Case | Window |
+| --- | --- |
+| `./bin/patronum login --keep-open`, or "Complete verification" in the dashboard | always shown; it is for finishing a checkpoint by hand |
+| "Show Chrome while collecting" ticked in the New collection form | shown for that job |
+| `HEADLESS=false` in `.env` | shown for every command-line run and for the dashboard's sign-in checks |
+
+If a hidden sign-in stops at a checkpoint, do not retry it hidden: use `login --keep-open` so the person can complete it.
 
 ## Rules
 

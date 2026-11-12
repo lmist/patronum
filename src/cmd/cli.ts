@@ -51,7 +51,7 @@ ENV (in .env)
   AGENTMAIL_ADDRESS    Inbox receiving Instagram email codes (optional)
   PATRONUM_CHROME_PROFILE_DIR  Optional isolated Chrome profile path
   PATRONUM_AUTH_CACHE_DIR      Optional isolated action cache path
-  HEADLESS=true        Run Chrome headless (default: visible window)
+  HEADLESS=false       Show the Chrome window (default: hidden). login --keep-open always shows it.
 
 EXAMPLES
   patronum preflight

@@ -18,8 +18,8 @@ IG_USER=you@example.com
 IG_PASS=your-password
 # IG_TOTP_SECRET=...       only if the account uses an authenticator app
 # AGENTMAIL_API_KEY=...    only if Instagram emails security codes
-# HEADLESS=true            hide the Chrome window for command-line runs (dashboard collections already hide it)
 # AGENTMAIL_ADDRESS=...
+# HEADLESS=false           show the Chrome window while it works (hidden by default)
 ```
 
 4. `./bin/patronum status` tells you what is still missing.
