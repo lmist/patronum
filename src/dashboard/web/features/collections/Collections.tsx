@@ -1,4 +1,4 @@
-import { ArrowUpRight, Search, Layers3 } from "lucide-react";
+import { ArrowUpRight, Search, Layers3, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { ErrorNotice, Empty, Loading, Status } from "../../components/feedback";
@@ -11,7 +11,10 @@ function FieldError({name, message}: {name: string; message?: string}) {
 export function Composer() {
   const c=useComposer();
   return <section aria-labelledby="composer-title" className="composer-section">
-    <h2 id="composer-title">New collection</h2>
+    <div className="composer-heading">
+      <div><h2 id="composer-title">New collection</h2><p className="muted">Collect an Instagram profile’s posts and download their media. Optionally have the vision model describe each image and video.</p></div>
+      {c.canClose&&<Button type="button" variant="ghost" size="icon" aria-label="Close the new collection form" onClick={c.close}><X size={18}/></Button>}
+    </div>
     <form id="run-form" ref={c.form} className="composer stack" onSubmit={c.submit} noValidate>
       <div className="composer-fields">
         <label className="field" htmlFor="run-handle">Instagram handle
@@ -28,7 +31,7 @@ export function Composer() {
           <select {...c.fields.media}><option value="all">Images, carousels & reels</option><option value="images">Images & carousels only</option></select>
           <FieldError name="media" message={c.errors.media}/>
         </label>
-        <label className="field" htmlFor="collection-goal">What to do
+        <label className="field" htmlFor="collection-goal">What to do with it
           <select {...c.fields.goal}><option value="download">Download media</option><option value="analyze">Download & analyze with AI</option></select>
           <FieldError name="goal" message={c.errors.goal}/>
         </label>
@@ -44,8 +47,8 @@ export function Composer() {
             <span className="collection-help">{c.sourceHelp}</span>
             <FieldError name="source" message={c.errors.source}/>
           </label>
-          <label className="field" htmlFor="run-session">Instagram session
-            <select {...c.sessionProps} id="run-session"><option value="">Saved account session</option>{c.sessionMissing&&<option value={c.sessionProps.value} disabled>Session unavailable</option>}{c.sessionOptions.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}</select>
+          <label className="field" htmlFor="run-session">Instagram login to use
+            <select {...c.sessionProps} id="run-session"><option value="">Saved login (default)</option>{c.sessionMissing&&<option value={c.sessionProps.value} disabled>Session unavailable</option>}{c.sessionOptions.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}</select>
             <FieldError name="session" message={c.errors.session}/>
           </label>
           <fieldset className="collection-limits"><legend>Speed & time limit</legend>
@@ -61,7 +64,7 @@ export function Composer() {
       </details>
 
       <details id="collection-troubleshooting" className="disclosure collection-disclosure">
-        <summary>Troubleshooting</summary>
+        <summary>Troubleshooting <span>Only if a collection keeps failing</span></summary>
         <div className="stack">
           <div className="collection-checks">
             <label className="check"><input {...c.checks.showBrowser} data-flag="show-browser" type="checkbox"/>Show Chrome while collecting</label>
@@ -70,7 +73,7 @@ export function Composer() {
           </div>
           <p className="collection-help">Browser actions may still need the LLM. If your key has expired, choose Download media above. Skipping a check does not make AI analysis work.</p>
           <div className="collection-mapping">
-            <div><strong>Map Instagram APIs</strong><p className="collection-help">Inspect requests for this profile. This does not start a collection.</p></div>
+            <div><strong>Map Instagram APIs</strong><p className="collection-help">Record the requests Instagram makes for this profile, to debug a collection that finds no posts. This does not start a collection.</p></div>
             <label className="field" htmlFor="collection-mapSurface">Mapping surface<select {...c.fields.mapSurface}><option value="profile">Profile posts</option><option value="saved">Saved posts (this account)</option></select></label>
             <Button id="map-network-btn" type="button" variant="secondary" disabled={c.busy} onClick={c.mapNetwork}>Map APIs<ArrowUpRight size={16}/></Button>
           </div>
@@ -78,7 +81,7 @@ export function Composer() {
         </div>
       </details>
 
-      <div className="composer-footer"><p className="collection-help">Completed work is kept. Wiki export is available in Results.</p><Button id="run-btn" type="submit" disabled={c.busy}>{c.launchLabel}<ArrowUpRight size={16}/></Button></div>
+      <div className="composer-footer"><p className="collection-help">Anything already collected for this profile is kept; a repeat run adds to it.</p><Button id="run-btn" type="submit" disabled={c.busy}>{c.launchLabel}<ArrowUpRight size={16}/></Button></div>
       <p id="run-status" role="status">{c.message}</p><ErrorNotice error={c.command.error}/>
     </form>
   </section>;

@@ -1,5 +1,5 @@
 import { Button } from "./components/ui/button";
-import { ArrowUpRight, Plus, RefreshCw, ChevronRight, GitBranch, CircleAlert } from "lucide-react";
+import { ArrowUpRight, Plus, RefreshCw, ChevronRight, CircleAlert } from "lucide-react";
 import { ErrorNotice, Empty, Status, Loading } from "./components/feedback";
 import { AppContext, useApp, useDashboard } from "./state/app";
 import { Composer,CollectionList } from "./features/collections/Collections";
@@ -19,14 +19,17 @@ function CollectionsWorkspace() {
     {app.workflowId&&<ErrorNotice error={app.detail.error}><Button variant="link" onClick={app.refresh}>Retry loading collection</Button></ErrorNotice>}
     {app.workflowId&&app.detail.isPending&&<Loading label="Opening collection…"/>}
     {app.workflow&&<section id="detail-body" className="stack" aria-label="Collection details">
-      <div className="detail-heading"><div><h1 id="wf-id">@{app.workflow.handle||"Unknown profile"}</h1><div id="wf-meta"><Status status={app.workflow.status}/><span className="muted">{app.created}</span></div></div></div>
-      <div className="job-summary"><div className="job-progress"><span className="muted">{app.completeStages} of {app.totalStages} stages complete · {app.elapsed}</span><div className="stage-meter" data-status={app.canCancel?"running":app.detail.data?.errorText?"error":"idle"} aria-hidden="true">{Array.from({length:app.totalStages},(_,i)=><span key={i} data-filled={i<app.completeStages} data-next={i===app.completeStages}/>)}</div></div><div className="actions"><Button id="btn-resume" hidden={!app.canResume} disabled={app.command.isPending} onClick={app.resume}>Resume collection<ArrowUpRight size={16}/></Button><Button id="btn-cancel" hidden={!app.canCancel} variant="destructive" disabled={app.command.isPending} onClick={app.cancel}>Cancel collection</Button></div><ErrorNotice error={app.command.error}/></div>
+      <header className="detail-heading">
+        <div className="detail-title"><h1 id="wf-id">@{app.workflow.handle||"Unknown profile"}</h1><div id="wf-meta"><Status status={app.workflow.status}/><span className="muted">Started {app.created}</span></div></div>
+        <div className="actions"><Button id="btn-resume" hidden={!app.canResume} disabled={app.command.isPending} onClick={app.resume}>Resume collection<ArrowUpRight size={16}/></Button><Button id="btn-cancel" hidden={!app.canCancel} variant="destructive" disabled={app.command.isPending} onClick={app.cancel}>Cancel collection</Button></div>
+      </header>
+      <div className="job-summary"><div className="job-progress"><span className="muted">{app.progressText}</span><div className="stage-meter" data-status={app.canCancel?"running":app.detail.data?.errorText?"error":"idle"} aria-hidden="true">{app.stageMeter.map((stage,i)=><span key={stage.name} data-filled={i<app.completeStages} data-next={i===app.completeStages} data-skipped={stage.skipped||undefined}/>)}</div></div><ErrorNotice error={app.command.error}/></div>
       <p id="launch-status" className="muted" role="status">{app.launchStatus}</p>
-      {app.detail.data?.errorText&&<div id="error-banner" role="alert" className="notice notice-error error-banner"><CircleAlert size={18} aria-hidden="true"/><p className="error-advice">{app.recovery.advice}</p><p className="error-detail">{app.detail.data.errorText}</p>{app.recovery.account&&<Button variant="secondary" onClick={app.account}>Open account</Button>}</div>}
-      <nav className="detail-tabs" aria-label="Collection views"><Button variant="ghost" data-view="results" {...app.viewProps("results")}>Results</Button><Button variant="ghost" data-view="progress" {...app.viewProps("progress")}>State machine</Button></nav>
+      {app.detail.data?.errorText&&<div id="error-banner" role="alert" className="notice notice-error error-banner"><CircleAlert size={18} aria-hidden="true"/><p className="error-advice">{app.recovery.advice}</p><p className="error-detail" tabIndex={0}>{app.detail.data.errorText}</p>{app.recovery.account&&<Button variant="secondary" onClick={app.account}>Open Account</Button>}</div>}
+      <nav className="detail-tabs" aria-label="Collection views"><Button variant="ghost" data-view="results" {...app.viewProps("results")}>Results</Button><Button variant="ghost" data-view="progress" {...app.viewProps("progress")}>Progress</Button></nav>
       {app.selection.view==="results"?<Results key={app.workflowId}/>:<Progress key={app.workflowId}/>}
     </section>}
-    {!app.workflowId&&<section className="surface job-welcome"><GitBranch size={32}/><h1>Select a job to inspect its state machine</h1><p className="muted">Choose a job from the sidebar to follow its states, inspect outputs, or recover unfinished work.</p></section>}
+    {!app.workflowId&&<p className="job-welcome muted">Looking for an earlier collection? Choose it in the Jobs list to see its progress and results, or to resume it.</p>}
   </>;
 }
 

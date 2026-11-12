@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Layers3, UserRound, SlidersHorizontal } from "lucide-react";
 import { useCommand, useWorkspace } from "../api/queries";
 import { updateSelection, selectWorkflow, type Section } from "./selection";
-import { actionName, dateLabel, duration, isActiveAction, isRunning, countedStages } from "../api/types";
+import { actionName, dateLabel, duration, isActiveAction, isRunning, countedStages, STAGE_LABELS } from "../api/types";
 import { useJobSidebar } from "./sidebar";
 import { collectionRecovery } from "./recovery";
 export function useApp() {
@@ -39,13 +39,21 @@ export function useApp() {
       window.scrollTo({top:0,left:0,behavior:"instant"});
     });
   };
+  const counted=countedStages(detail.data?.stages);
+  // A stage the job was told to skip and never ran, such as Analyze on a download-only collection.
+  const stageMeter=counted.map(name=>({name,skipped:Boolean(workflow?.skipped?.includes(name))&&(detail.data?.stages[name]?.state??"idle")==="idle"}));
+  // The stage a failed job stopped in is not complete, even when its last attempt recorded an output.
+  const failedStage=workflow&&["ERROR","MAX_RECOVERY_ATTEMPTS_EXCEEDED"].includes(workflow.status)?detail.data?.currentStage:null;
+  const completeStages=counted.filter(s=>detail.data?.stages[s]?.state==="done"&&s!==failedStage).length;
+  const skippedLabels=stageMeter.filter(s=>s.skipped).map(s=>STAGE_LABELS[s.name]);
+  const elapsed=duration(workflow?.startedAt,workflow?.completedAt);
   return {...workspace,nav,refresh,home,newCollection,resume,cancel,account,viewProps,keyDown,activities,command,sidebar,
     recovery:collectionRecovery(detail.data?.errorText),
     title:selection.section==="account"?"Account":selection.section==="diagnostics"?"Diagnostics":"Jobs",
     workflow,canResume:Boolean(workflow&&["ERROR","CANCELLED","MAX_RECOVERY_ATTEMPTS_EXCEEDED"].includes(workflow.status)),
-    canCancel:isRunning(workflow?.status),created:dateLabel(workflow?.createdAt),elapsed:duration(workflow?.startedAt,workflow?.completedAt),
-    completeStages:countedStages(detail.data?.stages).filter(s=>detail.data?.stages[s]?.state==="done").length,
-    totalStages:countedStages(detail.data?.stages).length,
+    canCancel:isRunning(workflow?.status),created:dateLabel(workflow?.createdAt),elapsed,
+    completeStages,totalStages:counted.length,stageMeter,
+    progressText:[completeStages+" of "+counted.length+" stages complete",...(skippedLabels.length?[skippedLabels.join(", ")+" skipped"]:[]),...(workflow?.startedAt?[elapsed]:[])].join(" · "),
     connected:workspace.now.isSuccess&&!workspace.now.isError,
     updated:workspace.now.data?dateLabel(workspace.now.data.ts):"Connecting…",
     launchStatus:selection.receiptPid?(workspace.receipt.data?(isActiveAction(workspace.receipt.data)?"Collection command in progress":"Collection command "+workspace.receipt.data.status)+". Workflow status is shown above.":"Collection command accepted. Waiting for workflow status…"):"",

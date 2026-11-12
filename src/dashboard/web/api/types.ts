@@ -5,6 +5,8 @@ export function countedStages(stages?: Partial<Record<StageName, { state?: strin
   return STAGES.filter(name => name !== "knowledge" || (stages?.knowledge?.state ?? "idle") !== "idle");
 }
 export const STAGE_LABELS: Record<StageName, string> = { preflight: "Readiness", scrape: "Collect posts", verify: "Verify posts", download: "Download", unique: "Deduplicate", analyze: "Analyze", knowledge: "Publish wiki" };
+/** One line on what each stage does, for someone who has not seen the pipeline before. */
+export const STAGE_HINTS: Record<StageName, string> = { preflight: "Check sign-in and the model", scrape: "Find posts on the profile", verify: "Check the profile is complete", download: "Save images and videos", unique: "Remove duplicate media", analyze: "Describe each image and video", knowledge: "Publish wiki (retired)" };
 export type WorkflowStatus = "SUCCESS" | "ERROR" | "PENDING" | "ENQUEUED" | "CANCELLED" | "MAX_RECOVERY_ATTEMPTS_EXCEEDED";
 export interface Workflow {
   id: string; handle: string; status: WorkflowStatus; name: string; queue: string;

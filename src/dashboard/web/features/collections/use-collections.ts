@@ -81,17 +81,18 @@ export function useComposer() {
     onChange:(e:ChangeEvent<HTMLInputElement>)=>{const checked=e.currentTarget.checked;setDraft(previous=>({...previous,[name]:checked}));},
   });
   const analyzing=draft.goal==="analyze";
-  return {form,submit,mapNetwork,errors,command,mapCommand,busy,analyzing,
+  const close=()=>{const disclosure=document.getElementById("new-collection-disclosure") as HTMLDetailsElement|null;if(disclosure)disclosure.open=false;};
+  return {form,submit,mapNetwork,errors,command,mapCommand,busy,analyzing,close,canClose:Boolean(app.workflowId),
     fields:{handle:input("handle"),max:input("max"),media:input("media"),goal:input("goal"),source:input("source"),mapSurface:input("mapSurface"),
       browserWorkers:input("browserWorkers"),downloadWorkers:input("downloadWorkers"),analysisWorkers:input("analysisWorkers"),timeoutMinutes:input("timeoutMinutes")},
     checks:{showBrowser:check("showBrowser"),forceLogin:check("forceLogin"),skipLlmCheck:check("skipLlmCheck"),allFrames:check("allFrames")},
     sessionProps:{name:"session",value:app.selection.sessionPid,onChange:sessionChange,disabled:busy,"aria-invalid":errors.session?true:undefined,"aria-describedby":errors.session?"collection-session-error":undefined},
     sessionMissing,sessionOptions:sessions.map(l=>({value:String(l.pid),label:"Checked session · "+dateLabel(l.startedAt)})),
     sourceHelp:draft.source==="saved"?"Retry unfinished posts from the last saved list for this handle. No new posts are discovered.":"Find posts on the profile and keep any completed work already saved.",
-    goalHelp:analyzing?"Download and deduplicate media, then describe each image and video with the video model. Requires a model that passes the readiness check.":"Download and deduplicate media. AI analysis and its readiness check are skipped.",
+    goalHelp:analyzing?"Downloads the media, removes duplicates, then describes each image and video with the vision model. The model has to pass the readiness check first.":"Downloads the media and removes duplicates. Nothing is sent to the vision model, so its readiness check is skipped.",
     summary:`${draft.browserWorkers || "—"} browser tabs · ${draft.downloadWorkers || "—"} parallel downloads`,
     launchLabel:busy?"Starting…":"Start collection",
-    message:mapCommand.isPending?"Starting API mapping…":command.isPending?"Starting collection…":command.isSuccess?"Collection accepted. Follow its workflow below.":"",
+    message:mapCommand.isPending?"Starting API mapping…":command.isPending?"Starting collection…":command.isSuccess?"Collection accepted. Follow its progress below.":"",
   };
 }
 export function useCollections() {
@@ -112,7 +113,7 @@ export function useCollections() {
     filterProps:{value:filter,onChange:(e:ChangeEvent<HTMLInputElement>)=>{setFilter(e.currentTarget.value);setLimit(12);},
       onInput:(e:FormEvent<HTMLInputElement>)=>{setFilter(e.currentTarget.value);setLimit(12);}},
     showMore:()=>setLimit(n=>n+12),error:app.workflows.error,loading:app.workflows.isPending,
-    emptyTitle:filter?"No matching collections":"Your library starts here",
-    emptyText:filter?"Try another handle or status.":"Enter an Instagram handle above to collect your first profile.",
+    emptyTitle:filter?"No matching jobs":"No jobs yet",
+    emptyText:filter?"Try another handle or status.":"Start a collection and it will appear here.",
   };
 }

@@ -445,7 +445,7 @@ describe("igdash UI — agent-browser", () => {
     expect(p.banner).not.toMatch(/^[A-Za-z0-9+/=]{40,}$/);
     expect(p.rail.toLowerCase()).toContain("preflight");
     expect(p.rail.toLowerCase()).toMatch(/failed|needs attention/);
-    expect(p.stageNames).toEqual(["preflight", "scrape", "verify", "download", "unique", "analyze", "knowledge"]);
+    expect(p.stageNames).toEqual(["preflight", "scrape", "verify", "download", "unique", "analyze"]);
     expect(p.steps.some((s: string) => s.includes("preflight"))).toBe(true);
     expect(p.steps.some((s: string) => s.includes("DBOS.setEvent"))).toBe(false);
     expect(p.resumeHidden).toBe(false);
@@ -719,7 +719,7 @@ describe("igdash UI — agent-browser", () => {
     if(!MODERN_UI)return;
     ab(["set","viewport","1440","1000"]);
     ab(["fill","#filter","tbrush"]);ab(["click","#wf-list li"]);
-    ab(["wait","--fn","document.querySelectorAll('.fsm-node').length === 9"]);
+    ab(["wait","--fn","document.querySelectorAll('.fsm-node').length === 8"]);
     expect(ab(["eval","document.querySelector('[data-view=progress]').getAttribute('aria-pressed')"])).toBe('"true"');
     expect(ab(["eval","document.querySelector('.jobs-sidebar').getBoundingClientRect().right < document.querySelector('#workspace').getBoundingClientRect().left"])).toBe("true");
     ab(["click","#new-job"]);ab(["wait","--fn","document.querySelector('#new-collection-disclosure').open === true"]);
@@ -730,7 +730,7 @@ describe("igdash UI — agent-browser", () => {
     ab(["click","[data-view=results]"]);ab(["fill","#filter","pretty"]);
     ab(["eval","window.scrollTo(0,document.body.scrollHeight)"]);ab(["click","#wf-list li"]);
     ab(["wait","--fn","scrollY === 0 && document.activeElement?.id === 'workspace'"]);
-    ab(["wait","--text","State machine"]);expect(page().wfId).toContain("prettydios");
+    ab(["wait","--text","Progress"]);expect(page().wfId).toContain("prettydios");
     expect(ab(["eval","document.querySelector('[data-node=complete]').getAttribute('data-state')"])).toBe('"done"');
     ab(["set","viewport","390","844"]);
     ab(["wait","--fn","document.querySelector('#job-sidebar-list').open === false"]);
