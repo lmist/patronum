@@ -14,22 +14,9 @@ type = "task"
 priority = 1
 labels = ["bootstrap"]
 description = """
-Print the observation block (git? vendor/beads? bin/bd? .beads/metadata.json? formulas? hooks?).
+Print the observation block (git? mise? bin/bd? .beads/metadata.json? formulas? hooks?).
 Use docs/RESOLVERS.md section 0. Do not change anything in this step.
 Acceptance: a note on this bead lists yes/no for each of those six facts.
-"""
-
-[[steps]]
-id = "vendor-subtree"
-title = "Ensure vendor/beads subtree"
-type = "chore"
-priority = 1
-labels = ["bootstrap"]
-needs = ["observe"]
-description = """
-Resolver: if vendor/beads/cmd/bd/main.go exists, close this as already done.
-Else run the subtree row in docs/RESOLVERS.md (git subtree add --prefix=vendor/beads beads-upstream v1.2.1 --squash).
-Acceptance: vendor/beads/cmd/bd/main.go exists.
 """
 
 [[steps]]
@@ -38,10 +25,10 @@ title = "Ensure repo-local bin/bd"
 type = "chore"
 priority = 1
 labels = ["bootstrap"]
-needs = ["vendor-subtree"]
+needs = ["observe"]
 description = """
 Resolver: if bin/bd is executable and `bin/bd version` starts with 1.2, close as done.
-Else `make bd`.
+Else `make bd`: mise installs the pinned release and bin/bd is linked to it. It needs mise on PATH.
 Acceptance: `./bin/bd version` reports 1.2.x, installed by mise.
 """
 

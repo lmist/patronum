@@ -17,6 +17,7 @@ observe() {
   echo "=== observe ==="
   echo "cwd=$ROOT"
   echo "git=$(git rev-parse --is-inside-work-tree 2>/dev/null || echo no)"
+  echo "mise=$(have mise && mise --version 2>/dev/null | head -1 || echo missing)"
   echo "bin/bd=$([ -x bin/bd ] && bin/bd version 2>/dev/null | head -1 || echo missing)"
   echo "beads_db=$([ -f .beads/metadata.json ] && echo yes || echo no)"
   echo "formulas=$(ls .beads/formulas/*.formula.toml 2>/dev/null | wc -l | tr -d ' ')"
