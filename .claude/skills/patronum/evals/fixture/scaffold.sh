@@ -22,10 +22,12 @@ cp -R "$repo/node_modules/dotenv" "$repo/node_modules/zod" node_modules/
 
 bun "$repo/.claude/skills/patronum/evals/fixture/make-home.ts" "$work/home" >/dev/null
 
-# Fixture settings: a home inside the workspace, placeholder Instagram
-# credentials, and no model key (the readiness case expects that gap).
+# Fixture settings: a home inside the workspace, a server port of its own so
+# job commands can never reach a real server on this machine, placeholder
+# Instagram credentials, and no model key (the readiness case expects that gap).
 cat > .env <<ENV
 PATRONUM_HOME=$work/home
+IGDASH_PORT=17877
 IG_USER=fixture_account
 IG_PASS=fixture-password-do-not-print
 LLM_API_KEY=
