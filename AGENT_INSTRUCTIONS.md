@@ -28,7 +28,7 @@ replacement for "paste this prompt into a new agent" is:
 
 ## Non-negotiables
 
-- Drive the app so the app drives jobs to completion. Follow the [mandatory app-driven operation rule](./AGENTS.md#app-driven-job-operation--mandatory): diagnose with logs and read-only tools, repair code and test it, then use the dashboard UI to launch, retry, recover, and verify completion. Fix missing app controls instead of bypassing them with standalone stages or direct action API calls. Direct CLI operation requires an explicit user request.
+- Jobs go through the server. Start, resume and cancel them with `patronum run`, `patronum resume` and `patronum cancel`, or with the dashboard's buttons; both are clients of the same server ([rule](./AGENTS.md#jobs-go-through-the-server)). Diagnose with logs and read-only commands, repair code and test it, then run the job through the server again. Do not run pipeline stages by hand to get a job through unless the user asks for that stage.
 
 - Use `bd` for all task tracking. No markdown TODOs as the system of record.
 - Create or claim a bead **before** writing code.

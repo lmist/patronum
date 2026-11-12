@@ -6,9 +6,14 @@ description: How to work in this repository: the rules, where things are, and wh
 
 Patronum signs one Instagram account in on local Chrome, collects a requested profile, downloads its media and analyzes it with Qwen. Bun drives the browser and the dashboard; Go runs durable jobs and the media tools.
 
-## Jobs go through the dashboard
+## Jobs go through the server
 
-Drive the app so the app drives the job. Start, retry, resume and cancel collections in the dashboard UI and verify the result there. Shell commands and read-only API calls may inspect evidence; code changes and tests may repair the app. Do not run pipeline stages, mutate job state or call action endpoints directly to get a job through. If a control is missing or broken, fix the app, then use the control. A standalone command succeeding does not prove the app can finish the job. Only an explicit user request for direct CLI operation overrides this.
+The local server owns jobs: it starts, resumes and cancels them, allows one browser job at a time and records every launch. It has two clients, and either is fine:
+
+- the command line: `./bin/patronum run <handle>`, `./bin/patronum resume <job-id>`, `./bin/patronum cancel <job-id>` (add `--wait` to follow a job to its end; the server starts on demand);
+- the dashboard (`./bin/patronum dashboard`): the same actions as buttons, plus the place to watch a job and browse results.
+
+Do not get a job through by running its stages yourself (`collect`, `download`, `unique`, `analyze`, `map-api`, `flow run`, `flow resume`) or by editing job state. If a job cannot finish through the server, fix the code, then run it through the server again: a stage succeeding on its own does not prove the job can finish. Reading is always fine (`jobs`, `job`, `profile`, `paths`, logs). Only an explicit user request for a single stage overrides this.
 
 ## Start a session
 

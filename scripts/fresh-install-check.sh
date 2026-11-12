@@ -154,9 +154,11 @@ for _ in $(seq 1 60); do curl -fsS -m 2 "$URL/api/health" >/dev/null 2>&1 && bre
 check "dashboard answers on its port" curl -fsS -m 3 "$URL/api/health"
 check "dashboard serves the app" bash -c "curl -fsS -m 3 '$URL/' | grep -qi '<!doctype html>'"
 [[ "$(p status --json | jq -r '.dashboard.running')" == true ]] && pass "status sees the dashboard" || fail "status sees the dashboard"
-started="$(curl -sS -m 10 -X POST "$URL/api/run" -H 'content-type: application/json' -H "origin: $URL" -d '{"handle":"fresh_install_check"}')"
-id="$(jq -r '.workflowId // empty' <<<"$started" 2>/dev/null)"
-[[ -n "$id" ]] && pass "dashboard starts a job" || fail "dashboard starts a job" "$started"
+run p run 'https://instagram.com/x'
+[[ $code -eq 2 ]] && pass "run rejects a URL as a handle" || fail "run rejects a URL as a handle" "exit $code"
+started="$(p run fresh_install_check --max 3 --json 2>/dev/null)"
+id="$(jq -r '.job // empty' <<<"$started" 2>/dev/null)"
+[[ -n "$id" ]] && pass "patronum run starts a job through the server" || fail "patronum run starts a job through the server" "$started"
 status=""
 for _ in $(seq 1 120); do
   status="$(p job "$id" --json 2>/dev/null | jq -r '.job.status // empty' 2>/dev/null)"
@@ -168,8 +170,18 @@ job="$(p job "$id" --json 2>/dev/null)"
 error="$(jq -r '.error // ""' <<<"$job")"
 [[ "$error" == *IG_USER* && "$error" == *LLM_API_KEY* ]] && pass "the job error names the missing variables" || fail "the job error names the missing variables" "$error"
 if grep -qE 'igflow|bun run' <<<"$error"; then fail "the job error uses no internal names" "$error"; else pass "the job error uses no internal names"; fi
-grep -qi 'dashboard' <<<"$error" && pass "the job error points at the dashboard" || fail "the job error points at the dashboard" "$error"
+grep -q 'patronum resume' <<<"$error" && pass "the job error says how to resume" || fail "the job error says how to resume" "$error"
 [[ "$(jq -c '[.stages[].name]' <<<"$job")" == '["preflight","scrape","verify","download","unique","analyze"]' ]] && pass "the job view lists the six stages" || fail "the job view lists the six stages" "$(jq -c '[.stages[].name]' <<<"$job")"
+run p resume "$id" --wait --json
+[[ $code -eq 1 && "$(jq -r '.ok' <<<"$out" 2>/dev/null)" == false ]] && pass "resume --wait follows the job and exits 1 when it fails again" || fail "resume --wait follows the job and exits 1 when it fails again" "exit $code: $(head -c 300 <<<"$out")"
+run p cancel "$id"
+[[ $code -eq 1 ]] && has 'not running' && pass "cancel refuses a job that is not running" || fail "cancel refuses a job that is not running" "exit $code: $out"
+run p server stop
+[[ $code -eq 0 ]] && pass "server stop stops the server" || fail "server stop stops the server" "exit $code: $out"
+[[ "$(p server status --json | jq -r '.running')" == false ]] && pass "server status says it is stopped" || fail "server status says it is stopped"
+run p server start
+[[ "$(p server status --json | jq -r '.running')" == true ]] && pass "server start brings it back, detached" || fail "server start brings it back, detached" "$out"
+p server stop >/dev/null 2>&1
 stop_dashboard; sleep 1
 if lsof -ti "tcp:$PORT" -sTCP:LISTEN >/dev/null 2>&1; then fail "nothing is left on the dashboard port"; else pass "nothing is left on the dashboard port"; fi
 

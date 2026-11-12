@@ -29,6 +29,8 @@ A handle is the bare name: `some_handle`, not `@some_handle` and not a URL.
 
 To diagnose a failed job: `jobs --status ERROR --json`, then `job <id> --json`. Report the stage and the error text. Read the log folder it names only if the error is not enough.
 
+Jobs belong to a local server, which `run`, `resume` and `cancel` start on demand; `./bin/patronum server status` shows it and `./bin/patronum server stop` stops it. Only one browser job runs at a time: if the server answers that a browser action is already running, wait for that job rather than starting another.
+
 ## Where data is
 
 Collected data, the job database, logs and the saved login are in the **home folder**, not the repository: `PATRONUM_HOME`, default `~/Documents/patronum`. `status` shows which is in use. Relative paths such as `data/profiles/...` are inside the home folder, not the repository. When someone asks where a file is, answer with the absolute path from `paths --json`; do not hard-code either location.
@@ -40,7 +42,10 @@ Collected data, the job database, logs and the saved login are in the **home fol
 | Prove the model key works | `./bin/patronum preflight` | no browser; exit 4 names the problem |
 | Check the saved Instagram login | `./bin/patronum session --check-only` | runs Chrome, hidden |
 | Sign in | `./bin/patronum login` | runs Chrome, hidden; saves cookies |
-| Open the dashboard | `./bin/patronum dashboard` | http://127.0.0.1:7799 |
+| Collect a profile | `./bin/patronum run <handle> --max 30 --wait` | add `--analyze` to describe the media; exit 0 when the job finished |
+| Retry a failed job | `./bin/patronum resume <job-id> --wait` | restarts at the step that failed |
+| Stop a running job | `./bin/patronum cancel <job-id>` | |
+| Watch jobs and browse results | `./bin/patronum dashboard` | http://127.0.0.1:7799; its buttons do the same as the three commands above |
 
 Exit codes are the same everywhere: `0` ok, `1` failed (retry later), `2` usage, `3` Instagram sign-in, `4` model.
 
@@ -58,7 +63,7 @@ If a hidden sign-in stops at a checkpoint, do not retry it hidden: use `login --
 
 ## Rules
 
-1. **Jobs go through the dashboard.** Starting, resuming, retrying and cancelling a collection are done in the dashboard UI. Do not run `./bin/patronum collect`, `flow run`, `flow resume`, `download`, `unique`, `analyze` or `map-api` to operate a job unless the user explicitly asked for direct command-line operation. Reading is always fine: `jobs`, `job`, `profile`, `flow list`, `flow status`, `flow doctor`.
+1. **Jobs go through the server.** Use `run`, `resume` and `cancel` (or the dashboard's buttons, which send the same requests). Do not run `./bin/patronum collect`, `download`, `unique`, `analyze`, `map-api`, `flow run` or `flow resume` to get a job through unless the user explicitly asked for that single stage. Reading is always fine: `jobs`, `job`, `profile`, `flow list`, `flow status`, `flow doctor`.
 2. **`saved --target` changes the Instagram account.** Use `saved --inspect` unless the user asked for saves.
 3. **One browser at a time.** Commands that open Chrome share one saved login. Do not run two of them together.
 4. **Stop on an Instagram rejection.** Do not retry in a loop, switch accounts or reset credentials to get around it.

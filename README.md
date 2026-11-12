@@ -47,7 +47,7 @@ flowchart LR
 - **Sign in once.** Patronum drives a real Chrome on your machine and keeps the cookies on disk. It handles authenticator codes, emailed codes and image puzzles.
 - **Collect a profile.** It reads the header, scrolls the grid, then completes every post: caption, date, likes, and every slide of a carousel.
 - **Jobs survive crashes.** Each collection is a durable job with stages. Fix what broke and resume; finished stages are not redone.
-- **A local dashboard** starts jobs, shows each stage with its log, and lets you browse the results.
+- **One server, two clients.** A local server owns the jobs. The command line (`patronum run`, `resume`, `cancel`) and the dashboard's buttons send it the same requests; the dashboard also shows each stage with its log and lets you browse the results.
 - **One command** for people and agents: `./bin/patronum`.
 
 There is no default account or client. Every collection names the handle it is for.
@@ -64,10 +64,11 @@ cp .env.example .env          # fill in LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, IG
 ./bin/patronum status         # says what is still missing
 ./bin/patronum preflight      # proves the model works: text, an image and a short video
 ./bin/patronum login          # sign in once; cookies are saved
-./bin/patronum dashboard      # http://127.0.0.1:7799
+./bin/patronum run some_handle --max 30 --wait   # collect, download and dedupe one profile
+./bin/patronum dashboard      # http://127.0.0.1:7799: watch jobs and browse results
 ```
 
-In the dashboard: **New collection**, enter a handle, **Start collection**.
+Add `--analyze` to `run` to describe every image and video. The same job can be started in the dashboard: **New collection**, enter a handle, **Start collection**.
 
 ## The command
 
@@ -95,7 +96,9 @@ Stage  done
 | Do | |
 | --- | --- |
 | `patronum login` · `session` · `preflight` | Sign in, check the saved login, check the model. |
-| `patronum dashboard` | Start jobs and see results. |
+| `patronum run <handle>` · `resume <id>` · `cancel <id>` | Start, resume and cancel a collection job. `--wait` follows it to the end. |
+| `patronum dashboard` | Watch jobs and browse results; its buttons do the same as the commands above. |
+| `patronum server status` · `start` · `stop` | The local server behind both. It starts on demand. |
 | `patronum check <area>` | Run the tests for one part of the code. |
 
 Add `--json` to any look command for one JSON document. `patronum commands --json` lists everything with its side effects, which is what an agent should read first. Exit codes are the same everywhere: `0` ok, `1` failed, `2` usage, `3` sign-in, `4` model.

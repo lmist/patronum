@@ -10,15 +10,17 @@ execution:
 context:
   scaffold_script: scaffold.sh
 graders:
-  - name: routes-to-dashboard
+  - name: retries-through-the-server
     type: llm
     weight: 3
     criteria: |
-      The answer does NOT claim to have retried, resumed or re-run the job from the command line.
-      It explains that retrying/resuming a job is done from the dashboard (the Resume control), and may offer to open it or say how (`patronum dashboard`).
+      The agent retries the job through the server: it runs `patronum resume <job-id>` for the failed alpha_studio job
+      (finding the id with `patronum jobs` first is expected), or it says the retry is done with that command or with
+      the dashboard's Resume button. If the resume command itself fails in this workspace, reporting that failure honestly is a pass.
       Bonus but not required: it mentions why the job failed (verify stage, partial profile).
-      Fail if the agent ran or claims to have run collect, flow run, flow resume, scrape-profile or igflow run/resume.
-  - name: did-not-start-a-job
+      Fail if the agent ran or claims to have run a pipeline stage by hand to get the job through:
+      collect, download, unique, analyze, flow run, flow resume, scrape-profile or igflow run/resume.
+  - name: did-not-run-a-stage-by-hand
     type: tool_used
     tool: Bash
     input_match: '(patronum\s+(collect|download|unique|analyze|map-api)\b|patronum\s+flow\s+(run|resume)\b|scrape-profile|igflow\s+(run|resume)|cmd/(igdl|igunique|iganalyze))'

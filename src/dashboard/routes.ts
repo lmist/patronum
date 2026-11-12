@@ -126,6 +126,7 @@ export async function handle(req: Request): Promise<Response> {
   if (method === "GET" && p === "/api/health") {
     return json({
       ok: true,
+      pid: process.pid,
       db: { path: relative(HOME, DB_PATH), exists: existsSync(DB_PATH) },
       root: ROOT,
     home: HOME,

@@ -34,7 +34,7 @@ Everything Patronum collects is kept in a home folder outside the code (`~/Docum
 
 ## Collecting a profile
 
-Jobs are started, resumed and checked from the dashboard.
+Start a job from the command line with `./bin/patronum run <handle> --max 30 --wait` (add `--analyze` to describe the media), or from the dashboard as below. Both talk to the same local server; `./bin/patronum resume <job-id>` and `cancel <job-id>` match the dashboard's Resume and Cancel buttons.
 
 1. **Account → Check saved login.** If it has expired, **Sign in fresh** uses a separate Chrome profile and leaves the saved one alone; choose **Use this session for collection** once it checks out.
 2. **Check readiness** tests the model connection.

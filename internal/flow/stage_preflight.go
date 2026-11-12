@@ -58,9 +58,9 @@ type PreflightTool struct {
 
 // Hints surfaced in error events so humans know how to recover.
 const (
-	HintAuth = "run `patronum login` (or finish 2FA in the local Chrome), then resume the job from the dashboard"
-	HintLLM  = "run `patronum preflight`, fix the model settings in .env (LLM_API_KEY, LLM_BASE_URL, LLM_MODEL_*), then resume the job from the dashboard"
-	HintEnv  = "put IG_USER, IG_PASS, and LLM_API_KEY in .env or export them, then resume the job from the dashboard"
+	HintAuth = "run `patronum login` (or finish 2FA in the local Chrome), then resume the job (`patronum resume <id>`, or Resume in the dashboard)"
+	HintLLM  = "run `patronum preflight`, fix the model settings in .env (LLM_API_KEY, LLM_BASE_URL, LLM_MODEL_*), then resume the job (`patronum resume <id>`, or Resume in the dashboard)"
+	HintEnv  = "put IG_USER, IG_PASS, and LLM_API_KEY in .env or export them, then resume the job (`patronum resume <id>`, or Resume in the dashboard)"
 )
 
 func formatLLMPreflightMsg(kind, msg string) string {

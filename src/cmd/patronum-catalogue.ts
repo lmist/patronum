@@ -18,8 +18,9 @@ export type CommandEntry = {
   /** Writes files, starts jobs, or changes the Instagram account. */
   changesState?: boolean;
   /**
-   * AGENTS.md says collection jobs are driven from the dashboard. Commands
-   * marked here are for when the user explicitly asks for direct CLI operation.
+   * AGENTS.md says jobs go through the server (patronum run / resume / cancel,
+   * or the dashboard). Commands marked here run a stage outside a job and are
+   * for when the user explicitly asks for that.
    */
   dashboardFirst?: string;
   /** For run commands: the program that does the work. `bun` means this Bun binary. */
@@ -121,10 +122,34 @@ export const COMMANDS: CommandEntry[] = [
     runs: ["bun", "src/sign-in/captcha/cli.ts"],
   },
 
-  // ——— do the work ———
+  // ——— jobs: the command line and the dashboard are both clients of the server ———
+  {
+    name: "run", kind: "run", opensBrowser: true, changesState: true,
+    summary: "Start a collection job for one profile: collect, verify, download, dedupe, and with --analyze describe the media. Same request as the dashboard's New collection form.",
+    usage: "patronum run <handle> [--max N] [--analyze] [--skip-reels] [--all-frames] [--show-browser] [--force-login] [--browser-tabs N] [--download-workers N] [--analysis-workers N] [--timeout-minutes N] [--wait] [--json]",
+    examples: ["patronum run some_handle --max 30 --wait", "patronum run some_handle --analyze --wait --json"],
+  },
+  {
+    name: "resume", kind: "run", opensBrowser: true, changesState: true,
+    summary: "Resume a failed or cancelled job from the step that failed. Same request as the dashboard's Resume button.",
+    usage: "patronum resume <job-id> [--wait] [--json]",
+    examples: ["patronum resume ig:some_handle:1794331812 --wait"],
+  },
+  {
+    name: "cancel", kind: "run", changesState: true,
+    summary: "Cancel a running job. Same request as the dashboard's Cancel button.",
+    usage: "patronum cancel <job-id> [--wait] [--json]",
+    examples: ["patronum cancel ig:some_handle:1794331812"],
+  },
+  {
+    name: "server", kind: "run", changesState: true,
+    summary: "The local server that owns jobs and serves the dashboard. It starts on demand with run, resume and cancel; this shows, starts or stops it.",
+    usage: "patronum server [status | start | stop] [--json]",
+    examples: ["patronum server status --json", "patronum server stop"],
+  },
   {
     name: "dashboard", kind: "run", changesState: true,
-    summary: "Build and serve the local dashboard at http://127.0.0.1:7799. This is how jobs are started, resumed and checked.",
+    summary: "Build and serve the dashboard at http://127.0.0.1:7799: watch jobs, browse results, and use its buttons. If the server is already running, rebuild the UI and point at it.",
     usage: "patronum dashboard",
     examples: ["patronum dashboard"],
     runs: ["bun", "run", "dash"],
@@ -134,7 +159,7 @@ export const COMMANDS: CommandEntry[] = [
     summary: "Collect one profile into data/profiles/<handle>-profile.json.",
     usage: "patronum collect --url https://www.instagram.com/<handle> [--max N] [--skip-reels] [--no-detail] [--fresh]",
     examples: ["patronum collect --help", "patronum collect --url https://www.instagram.com/some_handle --max 30"],
-    dashboardFirst: "Start a collection from the dashboard: New collection.",
+    dashboardFirst: "This runs one stage outside a job. To collect a profile use: patronum run <handle>.",
     runs: ["bun", "src/cmd/scrape-profile.ts"],
   },
   {
@@ -158,7 +183,7 @@ export const COMMANDS: CommandEntry[] = [
     summary: "The durable job engine: run, resume, list, status, steps, doctor.",
     usage: "patronum flow <igflow arguments>",
     examples: ["patronum flow --help", "patronum flow doctor", "patronum flow list --status pending"],
-    dashboardFirst: "Reading (list, status, steps, doctor) is fine. Start and resume jobs from the dashboard.",
+    dashboardFirst: "Reading (list, status, steps, doctor) is fine. Start and resume jobs with patronum run / resume, which go through the server.",
     runs: ["go", "run", "./cmd/igflow"],
   },
   {
@@ -166,7 +191,7 @@ export const COMMANDS: CommandEntry[] = [
     summary: "Download the media a collected profile points at, into data/media/<handle>/.",
     usage: "patronum download -in data/profiles/<handle>-profile.json -out data/media/<handle>",
     examples: ["patronum download -h"],
-    dashboardFirst: "The dashboard runs this as a job stage.",
+    dashboardFirst: "A job runs this stage for you: patronum run <handle>.",
     runs: ["go", "run", "./cmd/igdl"],
   },
   {
@@ -174,7 +199,7 @@ export const COMMANDS: CommandEntry[] = [
     summary: "Keep the best copy of each image and video, into data/<handle>-unique/.",
     usage: "patronum unique -in data/profiles/<handle>-profile.json -media data/media/<handle> -out data/<handle>-unique",
     examples: ["patronum unique -h"],
-    dashboardFirst: "The dashboard runs this as a job stage.",
+    dashboardFirst: "A job runs this stage for you: patronum run <handle>.",
     runs: ["go", "run", "./cmd/igunique"],
   },
   {
@@ -182,7 +207,7 @@ export const COMMANDS: CommandEntry[] = [
     summary: "Describe each image and video with the model, into data/analysis/<handle>/.",
     usage: "patronum analyze -profile data/profiles/<handle>-profile.json -media data/media/<handle> -out data/analysis/<handle>",
     examples: ["patronum analyze -h"],
-    dashboardFirst: "The dashboard runs this as a job stage.",
+    dashboardFirst: "A job runs this stage for you: patronum run <handle>.",
     runs: ["go", "run", "./cmd/iganalyze"],
   },
 ];

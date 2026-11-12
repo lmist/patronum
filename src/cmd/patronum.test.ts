@@ -74,7 +74,7 @@ describe("patronum skill", () => {
 
   it("prints the guide and reports where the stub is installed", async () => {
     const shown = await run("skill", "show");
-    expect(shown.stdout).toContain("Jobs go through the dashboard");
+    expect(shown.stdout).toContain("Jobs go through the server");
     const status = JSON.parse((await run("skill", "status", "--json")).stdout);
     expect(status.installs.map((install: { scope: string }) => install.scope)).toEqual(["project", "user"]);
     expect((await run("skill", "nope", "--json")).exitCode).toBe(2);
@@ -104,6 +104,48 @@ describe("patronum command line", () => {
       expect(commandList()).toContain(`  Example:      ${command.examples[0]}`);
     }
     expect(commandList().match(/Side effects:/g)?.length).toBe(COMMANDS.length);
+  });
+
+  it("starts, resumes and cancels jobs as a client of the server", async () => {
+    // A port nothing listens on, and a home with no job database: no server is contacted or started.
+    const env = { ...process.env, IGDASH_PORT: "9", PATRONUM_HOME: join(REPO_ROOT, "src/dashboard/.test-no-such-home") };
+    const cli = async (...args: string[]) => {
+      const child = Bun.spawn([process.execPath, CLI, ...args], { cwd: REPO_ROOT, env, stdout: "pipe", stderr: "pipe" });
+      const [stdout, stderr, exitCode] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
+      return { stdout, stderr, exitCode };
+    };
+    const parsed = parseFlags(["some_handle", "--max", "5", "--analyze", "--wait"], ["max"], ["analyze", "wait", "skip-reels"]);
+    expect(parsed.rest).toEqual(["some_handle"]);
+    expect(parsed.values.max).toBe("5");
+    expect(parsed.on).toEqual({ analyze: true, wait: true });
+
+    const badHandle = await cli("run", "https://www.instagram.com/some_handle");
+    expect(badHandle.exitCode).toBe(2);
+    expect(badHandle.stderr).toContain("not a valid Instagram handle");
+    const badLimit = await cli("run", "some_handle", "--max", "0", "--json");
+    expect(badLimit.exitCode).toBe(2);
+    expect(JSON.parse(badLimit.stdout).message).toContain("Post limit");
+    expect((await cli("resume", "not-a-job-id")).exitCode).toBe(2);
+
+    // A well-formed id with no such job is refused before any request is sent.
+    const missing = await cli("resume", "ig:some_handle:1794331812", "--json");
+    expect(missing.exitCode).toBe(1);
+    expect(JSON.parse(missing.stdout)).toMatchObject({ ok: false, error: "not_applicable", status: null });
+    expect((await cli("cancel", "ig:some_handle:1794331812")).exitCode).toBe(1);
+
+    const status = await cli("server", "status", "--json");
+    expect(status.exitCode).toBe(0);
+    expect(JSON.parse(status.stdout)).toMatchObject({ ok: true, running: false, url: "http://127.0.0.1:9" });
+    expect((await cli("server", "sideways")).exitCode).toBe(2);
+  });
+
+  it("builds the same request as the dashboard's New collection form", async () => {
+    const { runRequest } = await import("./patronum-jobs.js");
+    const download = await runRequest({ handle: "some_handle", analyze: false, skipReels: false, showBrowser: false, forceLogin: false, allFrames: false });
+    expect(download.body).toMatchObject({ handle: "some_handle", max: 30, "skip-analyze": true, "skip-llm-preflight": true, "skip-reels": false, "show-browser": false, "detail-workers": 2, "dl-workers": 4, timeout: "30m" });
+    const analyze = await runRequest({ handle: "some_handle", max: "5", analyze: true, skipReels: true, showBrowser: true, forceLogin: false, allFrames: true });
+    expect(analyze.body).toMatchObject({ max: 5, "skip-analyze": false, "skip-llm-preflight": false, "skip-reels": true, "show-browser": true, "all-frames": true });
+    expect((await runRequest({ handle: "some_handle", max: "0", analyze: false, skipReels: false, showBrowser: false, forceLogin: false, allFrames: false })).body).toBeUndefined();
   });
 
   it("separates flags, values and positional arguments", () => {

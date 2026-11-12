@@ -19,27 +19,29 @@ import { API_KEY_NAMES } from "../llm/qwen.js";
 import { needsDetailEnrichment } from "../collect/resume.js";
 import { CHECKS, COMMANDS, EXIT_CODES, MODULES, type CommandEntry } from "./patronum-catalogue.js";
 import { logoWith } from "./patronum-logo.js";
+import { SERVER_LOG, SERVER_URL, ServerError, cancelJob, ensureServer, resumeJob, runRequest, serverHealth, startJob, stopServer, waitForLaunch, type Launch } from "./patronum-jobs.js";
 import { installSkill, removeSkill, skillGuide, skillStatus, type SkillScope } from "./patronum-skill.js";
 
 const HANDLE = /^[A-Za-z0-9._]{1,40}$/;
 const JOB_STATUSES = ["PENDING", "ENQUEUED", "SUCCESS", "ERROR", "CANCELLED"];
-const DASHBOARD_URL = `http://127.0.0.1:${process.env.IGDASH_PORT ?? 7799}`;
+const DASHBOARD_URL = SERVER_URL;
 
 class UsageError extends Error {
   constructor(message: string, readonly hint?: string) { super(message); }
 }
 
-type Flags = { json: boolean; help: boolean; user: boolean; force: boolean; values: Record<string, string>; rest: string[] };
+type Flags = { json: boolean; help: boolean; user: boolean; force: boolean; values: Record<string, string>; on: Record<string, boolean>; rest: string[] };
 
-/** Split inspect-command arguments into --json, --help, --name value pairs and the rest. */
-export function parseFlags(argv: string[], valued: string[] = []): Flags {
-  const flags: Flags = { json: false, help: false, user: false, force: false, values: {}, rest: [] };
+/** Split arguments into --json, --help, --name value pairs, the named on/off switches, and the rest. */
+export function parseFlags(argv: string[], valued: string[] = [], switches: string[] = []): Flags {
+  const flags: Flags = { json: false, help: false, user: false, force: false, values: {}, on: {}, rest: [] };
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index]!;
     if (arg === "--json") flags.json = true;
     else if (arg === "--help" || arg === "-h") flags.help = true;
     else if (arg === "--user") flags.user = true;
     else if (arg === "--force") flags.force = true;
+    else if (arg.startsWith("--") && switches.includes(arg.slice(2))) flags.on[arg.slice(2)] = true;
     else if (arg.startsWith("--") && valued.includes(arg.slice(2).split("=")[0]!)) {
       const [name, inline] = arg.slice(2).split("=", 2) as [string, string | undefined];
       const value = inline ?? argv[++index];
@@ -86,7 +88,7 @@ function table(rows: string[][]): string {
 function commandHelp(command: CommandEntry): string {
   const lines = [`patronum ${command.name} — ${command.summary}`, "", `Usage: ${command.usage}`, "", "Examples:", ...command.examples.map((example) => `  ${example}`)];
   lines.push("", `Side effects: ${sideEffects(command)}`);
-  if (command.dashboardFirst) lines.push(`Dashboard first: ${command.dashboardFirst}`);
+  if (command.dashboardFirst) lines.push(`Instead: ${command.dashboardFirst}`);
   if (command.runs) lines.push(`Runs: ${command.runs.join(" ")}`);
   return lines.join("\n");
 }
@@ -107,7 +109,7 @@ export function overview(): string {
     "One command: patronum <command> --help",
     "",
     `Exit codes: ${Object.entries(EXIT_CODES).map(([code, meaning]) => `${code} ${meaning.split(";")[0]}`).join(" · ")}`,
-    "Jobs are started and resumed from the dashboard (patronum dashboard); see AGENTS.md.",
+    "Jobs belong to the server. Start, resume and cancel them with patronum run / resume / cancel, or with the dashboard's buttons.",
   ].join("\n");
 }
 
@@ -125,7 +127,7 @@ export function commandList(): string {
     `  Usage:        ${command.usage}`,
     `  Example:      ${command.examples[0]}`,
     `  Side effects: ${sideEffects(command)}`,
-    ...(command.dashboardFirst ? [`  Dashboard:    ${command.dashboardFirst}`] : []),
+    ...(command.dashboardFirst ? [`  Instead:      ${command.dashboardFirst}`] : []),
   ].join("\n");
   const section = (title: string, kind: CommandEntry["kind"]) => [title, "", COMMANDS.filter((command) => command.kind === kind).map(entry).join("\n\n")];
   return [
@@ -156,12 +158,7 @@ function onPath(program: string): boolean {
 }
 
 async function dashboardHealth(): Promise<{ running: boolean; url: string }> {
-  try {
-    const response = await fetch(`${DASHBOARD_URL}/api/health`, { signal: AbortSignal.timeout(700) });
-    return { running: response.ok, url: DASHBOARD_URL };
-  } catch {
-    return { running: false, url: DASHBOARD_URL };
-  }
+  return { running: (await serverHealth()) != null, url: DASHBOARD_URL };
 }
 
 async function showStatus(flags: Flags): Promise<void> {
@@ -183,14 +180,14 @@ async function showStatus(flags: Flags): Promise<void> {
     dependencies: existsSync(inRepo("node_modules")),
   };
   const dashboard = await dashboardHealth();
+  const ready = credentials.model && credentials.instagramUser && credentials.instagramPassword && files.dependencies;
   const next: string[] = [];
   if (!files.dependencies) next.push("bun install");
   if (!credentials.model) next.push("set LLM_API_KEY, LLM_BASE_URL and LLM_MODEL in .env (or QWEN_API_KEY for the Qwen Token Plan), then: patronum preflight");
   if (!credentials.instagramUser || !credentials.instagramPassword) next.push("set IG_USER and IG_PASS in .env");
   if (!files.savedLogin && credentials.instagramUser) next.push("patronum login");
   if (!tools.go || !tools.ffmpeg || !tools.ffprobe) next.push("install go, ffmpeg and ffprobe for the media stages");
-  if (!dashboard.running) next.push("patronum dashboard");
-  const ready = credentials.model && credentials.instagramUser && credentials.instagramPassword && files.dependencies;
+  if (ready && !files.jobDatabase) next.push("patronum run <handle>   (or: patronum dashboard)");
   const home = {
     path: DATA_HOME,
     exists: existsSync(DATA_HOME),
@@ -250,8 +247,8 @@ function showProfile(flags: Flags): void {
   const handle = requireHandle(flags.rest[0], "patronum profile <handle>");
   const path = layout.profileJson(handle);
   if (!existsSync(inHome(path))) {
-    print(flags, { ok: false, error: "not_collected", handle, path, hint: "Start a collection from the dashboard: patronum dashboard" },
-      () => `No collected profile for ${handle} (${path} is missing).\nStart a collection from the dashboard: patronum dashboard`);
+    print(flags, { ok: false, error: "not_collected", handle, path, hint: `Start a collection: patronum run ${handle}` },
+      () => `No collected profile for ${handle} (${path} is missing).\nStart a collection: patronum run ${handle}`);
     process.exitCode = 1;
     return;
   }
@@ -321,7 +318,7 @@ async function showJob(flags: Flags): Promise<void> {
     print(flags, { ok: false, error: "not_found", id, hint }, () => text);
     process.exitCode = 1;
   };
-  if (!db) return notFound("no job has run in this checkout; start one from the dashboard: patronum dashboard", `No job with id ${id}: no job has run in this checkout yet.\nStart one from the dashboard: patronum dashboard`);
+  if (!db) return notFound("no job has run in this checkout; start one: patronum run <handle>", `No job with id ${id}: no job has run in this checkout yet.\nStart one: patronum run <handle>`);
   try {
     const job = store.getWorkflow(db, id);
     if (!job) return notFound("patronum jobs", `No job with id ${id}. List ids with: patronum jobs`);
@@ -363,6 +360,129 @@ function showSkill(flags: Flags): void {
     "",
     "show    print the guide          setup   install the stub (--user for ~/.claude)          remove  take it away",
   ].join("\n"));
+}
+
+// ——— jobs: the command line as a client of the server ———
+
+const JOB_ID = /^ig:[A-Za-z0-9._]{1,40}:\d+$/;
+
+function requireJobId(value: string | undefined, usage: string): string {
+  if (!value) throw new UsageError("a job id is required", `${usage}\nlist ids with: patronum jobs`);
+  if (!JOB_ID.test(value)) throw new UsageError(`"${value}" is not a job id`, "job ids look like ig:<handle>:<number>; list them with: patronum jobs");
+  return value;
+}
+
+async function withServer(flags: Flags): Promise<void> {
+  const server = await ensureServer();
+  if (server.started && !flags.json) console.error(`[patronum] started the server at ${server.url} (log: ${server.log})`);
+}
+
+/** Print a launch, and with --wait follow it to the end. Returns the exit code. */
+async function reportLaunch(flags: Flags, action: "run" | "resume" | "cancel", launch: Launch): Promise<number> {
+  const id = launch.workflowId ?? "";
+  if (!flags.on.wait) {
+    print(flags, { ok: true, action, job: id, pid: launch.pid, log: launch.logPath, server: SERVER_URL }, () => [
+      `${action === "run" ? "Started" : action === "resume" ? "Resumed" : "Cancelling"} ${id}`,
+      `Follow    patronum job ${id}     (or add --wait next time)`,
+      `Watch     ${SERVER_URL}`,
+      `Log       ${launch.logPath}`,
+    ].join("\n"));
+    return 0;
+  }
+  let last = "";
+  const finished = await waitForLaunch(launch.pid, async () => {
+    if (flags.json) return;
+    const line = await stageLine(id);
+    if (line && line !== last) { console.error(`[patronum] ${line}`); last = line; }
+  });
+  const ok = finished.exitCode === 0;
+  const error = ok ? null : (finished.tail ?? []).filter((line) => /"error"|\berror\b/i.test(line)).pop() ?? null;
+  print(flags, { ok, action, job: id, pid: launch.pid, exitCode: finished.exitCode, log: launch.logPath, error }, () => [
+    `${id}  ${ok ? "finished" : `failed (exit ${finished.exitCode})`}`,
+    ...(error ? [`Error  ${error.slice(0, 400)}`] : []),
+    `See    patronum job ${id}`,
+    `Log    ${launch.logPath}`,
+  ].join("\n"));
+  return ok ? 0 : 1;
+}
+
+/** One line of a job's stages, for --wait. Empty until the job has a database row. */
+async function stageLine(id: string): Promise<string> {
+  try {
+    const { store, db } = await openJobs();
+    if (!db) return "";
+    try {
+      const job = store.getWorkflow(db, id);
+      if (!job) return "";
+      const steps = store.getSteps(db, id);
+      const childSteps = steps.flatMap((step: any) => step.childWorkflowId ? store.getSteps(db, step.childWorkflowId) : []);
+      const derived = store.deriveStages([...steps, ...childSteps], store.getEvents(db, id), job.status);
+      return (Object.values(derived.stages) as any[]).filter((stage) => stage.name !== "knowledge" || stage.state !== "idle")
+        .map((stage) => `${stage.name} ${stage.state}`).join(" · ");
+    } finally { db.close(); }
+  } catch { return ""; }
+}
+
+async function runJob(flags: Flags): Promise<number> {
+  const handle = requireHandle(flags.rest[0]?.replace(/^@/, ""), "patronum run <handle> [--max N] [--analyze] [--wait]");
+  const request = await runRequest({
+    handle, max: flags.values.max, analyze: !!flags.on.analyze, skipReels: !!flags.on["skip-reels"], showBrowser: !!flags.on["show-browser"],
+    forceLogin: !!flags.on["force-login"], allFrames: !!flags.on["all-frames"], browserTabs: flags.values["browser-tabs"],
+    downloadWorkers: flags.values["download-workers"], analysisWorkers: flags.values["analysis-workers"], timeoutMinutes: flags.values["timeout-minutes"],
+  });
+  if (!request.body) throw new UsageError(Object.values(request.errors).join(" "), "patronum run --help");
+  await withServer(flags);
+  return reportLaunch(flags, "run", await startJob(request.body));
+}
+
+/** A job's status from the job database, or null when it has no row. */
+async function jobStatus(id: string): Promise<string | null> {
+  const { store, db } = await openJobs();
+  if (!db) return null;
+  try { return store.getWorkflow(db, id)?.status ?? null; } finally { db.close(); }
+}
+
+async function resumeOrCancel(flags: Flags, action: "resume" | "cancel"): Promise<number> {
+  const id = requireJobId(flags.rest[0], `patronum ${action} <job-id>`);
+  const status = await jobStatus(id);
+  const refuse = (reason: string) => {
+    print(flags, { ok: false, error: "not_applicable", job: id, status, message: reason }, () => `${id} is ${status ?? "unknown"}: ${reason}`);
+    return 1;
+  };
+  if (status == null) return refuse("there is no such job. List ids with: patronum jobs");
+  const running = status === "PENDING" || status === "ENQUEUED";
+  if (action === "resume" && status === "SUCCESS") return refuse("it finished; there is nothing to resume. Start a new one with: patronum run <handle>");
+  if (action === "resume" && running) return refuse("it is still running. Follow it with: patronum job " + id);
+  if (action === "cancel" && !running) return refuse("it is not running, so there is nothing to cancel");
+  await withServer(flags);
+  return reportLaunch(flags, action, action === "resume" ? await resumeJob(id) : await cancelJob(id));
+}
+
+async function manageServer(flags: Flags): Promise<number> {
+  const [action = "status"] = flags.rest;
+  if (action === "start") {
+    const server = await ensureServer();
+    print(flags, { ok: true, running: true, started: server.started, url: server.url, log: server.log }, () => `${server.started ? "Started" : "Already running at"} ${server.started ? `the server at ${server.url}` : server.url}\nLog  ${server.log}`);
+    return 0;
+  }
+  if (action === "stop") {
+    const result = await stopServer();
+    print(flags, { ok: true, running: false, ...result }, () => result.stopped ? `Stopped the server (pid ${result.pid}). Jobs already running keep going.` : "The server was not running.");
+    return 0;
+  }
+  if (action !== "status") throw new UsageError(`unknown server action "${action}"`, "use: patronum server status | start | stop");
+  const health = await serverHealth();
+  print(flags, { ok: true, running: health != null, url: SERVER_URL, pid: health?.pid ?? null, home: health?.home ?? null, log: inHome(SERVER_LOG) },
+    () => health ? `Running at ${SERVER_URL} (pid ${health.pid ?? "?"})\nHome  ${health.home ?? "?"}` : `Not running. It starts on demand with patronum run, or: patronum server start`);
+  return 0;
+}
+
+/** `patronum dashboard` when the server is already up: rebuild the UI it serves and point at it. */
+async function dashboardOnRunningServer(): Promise<number> {
+  const build = Bun.spawn([process.execPath, "run", "dash:build"], { cwd: REPO_ROOT, stdio: ["ignore", 2, 2] });
+  const code = await build.exited;
+  if (code === 0) console.log(`The server is already running. The dashboard is at ${SERVER_URL}`);
+  return code;
 }
 
 // ——— run commands ———
@@ -418,11 +538,13 @@ export async function main(argv: string[]): Promise<number> {
       throw new UsageError(`unknown command "${name}"`, close.length ? `did you mean: ${close.join(", ")}?` : "list commands with: patronum commands");
     }
     if (command.runs) {
+      if (name === "dashboard" && !args.some((arg) => arg === "--help" || arg === "-h") && (await serverHealth())) return await dashboardOnRunningServer();
       // Real programs own their flags, including --help.
       return await hand(command, args);
     }
-    const valued = name === "jobs" ? ["status", "handle", "limit"] : [];
-    const flags = parseFlags(args, valued);
+    const valued = name === "jobs" ? ["status", "handle", "limit"] : name === "run" ? ["max", "browser-tabs", "download-workers", "analysis-workers", "timeout-minutes"] : [];
+    const switches = name === "run" ? ["wait", "analyze", "skip-reels", "show-browser", "force-login", "all-frames"] : name === "resume" || name === "cancel" ? ["wait"] : [];
+    const flags = parseFlags(args, valued, switches);
     if (flags.help) { console.log(commandHelp(command)); return 0; }
     switch (name) {
       case "commands": showCommands(flags); break;
@@ -434,9 +556,19 @@ export async function main(argv: string[]): Promise<number> {
       case "job": await showJob(flags); break;
       case "skill": showSkill(flags); break;
       case "check": return await runChecks(flags);
+      case "run": return await runJob(flags);
+      case "resume": return await resumeOrCancel(flags, "resume");
+      case "cancel": return await resumeOrCancel(flags, "cancel");
+      case "server": return await manageServer(flags);
     }
     return Number(process.exitCode ?? 0);
   } catch (error) {
+    if (error instanceof ServerError) {
+      // 409: another browser job holds the one browser. Not a usage error; try again when it is done.
+      if (wantsJson) console.log(JSON.stringify({ ok: false, error: "server", status: error.status, message: error.message }, null, 2));
+      else console.error(`patronum: ${error.message}`);
+      return 1;
+    }
     if (!(error instanceof UsageError)) throw error;
     if (wantsJson) console.log(JSON.stringify({ ok: false, error: "usage", message: error.message, hint: error.hint ?? null }, null, 2));
     else console.error(`patronum: ${error.message}${error.hint ? `\n${error.hint}` : ""}\nHelp: patronum --help`);
