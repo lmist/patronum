@@ -28,6 +28,9 @@ cat > .env <<ENV
 PATRONUM_HOME=$work/home
 IG_USER=fixture_account
 IG_PASS=fixture-password-do-not-print
+LLM_API_KEY=
+LLM_BASE_URL=
+LLM_MODEL=
 QWEN_API_KEY=
 DASHSCOPE_API_KEY=
 ALIBABA_API_KEY=

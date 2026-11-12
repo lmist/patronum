@@ -14,8 +14,8 @@ graders:
     type: llm
     weight: 2
     criteria: |
-      The answer says the checkout is NOT ready and names the missing model key (QWEN_API_KEY, or its aliases) as the blocker.
-      It gives a concrete first step: set the key in .env and/or run the preflight check (`patronum preflight`).
+      The answer says the checkout is NOT ready and names the missing model settings as the blocker: LLM_API_KEY (with LLM_BASE_URL and LLM_MODEL), or the older QWEN_API_KEY.
+      It gives a concrete first step: set them in .env and/or run the readiness check (`patronum preflight`).
       It must not claim Instagram credentials are missing (they are present), and must not say everything is ready.
       Mentioning secondary items such as the dashboard not running or `make bd` is fine.
   - name: ran-status
