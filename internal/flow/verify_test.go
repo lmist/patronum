@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -293,5 +294,28 @@ func TestScrapeArgv_FreshVsResume(t *testing.T) {
 	got = strings.Join(scrapeArgv(in), " ")
 	if !strings.Contains(got, "--fresh") || strings.Contains(got, "--resume") {
 		t.Fatalf("fresh argv = %s", got)
+	}
+}
+
+func TestReadDownloadManifest_PartialFailureIsRetryable(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "manifest.json")
+	if err := os.WriteFile(path, []byte(`{"username":"h","outDir":"`+dir+`","total":95,"ok":94,"skipped":0,"failed":1}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := readDownloadManifest(dir, 95)
+	var cli *CLIError
+	if !errors.As(err, &cli) {
+		t.Fatalf("want a CLIError for 94 of 95, got %v", err)
+	}
+	if !cli.Retryable {
+		t.Fatalf("a partial download must be retryable so the missing file is fetched again: %v", err)
+	}
+	// The next pass skips the 94 it has and fetches the one it lacks.
+	if err := os.WriteFile(path, []byte(`{"username":"h","outDir":"`+dir+`","total":95,"ok":1,"skipped":94,"failed":0}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readDownloadManifest(dir, 95); err != nil {
+		t.Fatalf("a completed second pass should succeed: %v", err)
 	}
 }

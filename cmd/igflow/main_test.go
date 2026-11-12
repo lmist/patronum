@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/dbos-inc/dbos-transact-golang/dbos"
+
+	"github.com/lmist/patronum/internal/flow"
 )
 
 func TestHelpTextDocumentsContract(t *testing.T) {
@@ -128,4 +131,26 @@ func setFreshDatabase(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("DBOS_SYSTEM_DATABASE_URL", "sqlite:"+filepath.Join(dir, "system.sqlite"))
 	t.Setenv("IGFLOW_REPO_ROOT", dir)
+}
+
+func TestResumeStartStep(t *testing.T) {
+	failed := errors.New("failed")
+	step := func(id int, name string, err error) dbos.StepInfo {
+		return dbos.StepInfo{StepID: id, StepName: name, Error: err}
+	}
+	// A job that failed on the manifest read restarts at the download before it.
+	old := []dbos.StepInfo{step(18, "verify", nil), step(20, "download-root", nil), step(21, flow.StepDownloadExec, nil), step(22, flow.StepDownloadManifest, failed)}
+	if got := resumeStartStep(old); got != 21 {
+		t.Fatalf("manifest-read failure should restart at the download (21), got %d", got)
+	}
+	// Any other failure restarts at the step that failed.
+	if got := resumeStartStep([]dbos.StepInfo{step(4, "preflight", nil), step(8, "ScrapeStage", failed), step(21, flow.StepDownloadExec, nil)}); got != 8 {
+		t.Fatalf("want 8, got %d", got)
+	}
+	if got := resumeStartStep([]dbos.StepInfo{step(21, flow.StepDownloadExec, failed)}); got != 21 {
+		t.Fatalf("want 21, got %d", got)
+	}
+	if got := resumeStartStep(nil); got != 0 {
+		t.Fatalf("want 0, got %d", got)
+	}
 }

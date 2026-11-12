@@ -56,6 +56,13 @@ type analyzeItemEnt struct {
 	Error  string `json:"error"`
 }
 
+// Step names of the download stage. Resume uses them to restart at the
+// download itself when an older job failed on the manifest read.
+const (
+	StepDownloadExec     = "download-igdl-resume"
+	StepDownloadManifest = "download-read-manifest"
+)
+
 // DownloadMedia is the M1 download child: one igdl exec step (resume-
 // aware) plus a read of data/media/<handle>/manifest.json.
 func DownloadMedia(ctx dbos.Context, in ChildStageInput) (DownloadStageResult, error) {
@@ -72,9 +79,13 @@ func DownloadMedia(ctx dbos.Context, in ChildStageInput) (DownloadStageResult, e
 	}
 	outDir := MediaDir(root, in.Job.Handle)
 
+	// The downloader exits 0 even when some files failed, so the manifest is
+	// checked inside this step: a partial download is this step's failure. It
+	// is retried here (the downloader skips files it already has), and a
+	// later Resume re-runs the download instead of re-reading the same result.
 	_, err = dbos.RunAsStep(ctx, func(sctx context.Context) (CLIResult, error) {
-		return RunCLI(sctx, CLISpec{
-			Name:        "download-igdl-resume",
+		res, err := RunCLI(sctx, CLISpec{
+			Name:        StepDownloadExec,
 			Argv:        igdlArgv(in.Job, profile),
 			EnvOverride: EnvIGDLCmd,
 			WorkflowID:  wfID,
@@ -83,14 +94,21 @@ func DownloadMedia(ctx dbos.Context, in ChildStageInput) (DownloadStageResult, e
 				"IGFLOW_TEST_OUT=" + outDir,
 			},
 		})
-	}, stepOpts("download-igdl-resume", IGDLRetryPolicy)...)
+		if err != nil {
+			return res, err
+		}
+		if _, err := readDownloadManifest(outDir, in.Scrape.MediaURLs); err != nil {
+			return res, err
+		}
+		return res, nil
+	}, stepOpts(StepDownloadExec, IGDLRetryPolicy)...)
 	if err != nil {
 		return DownloadStageResult{}, err
 	}
 
 	return dbos.RunAsStep(ctx, func(context.Context) (DownloadStageResult, error) {
 		return readDownloadManifest(outDir, in.Scrape.MediaURLs)
-	}, dbos.WithStepName("download-read-manifest"), dbos.WithStepMaxRetries(0))
+	}, dbos.WithStepName(StepDownloadManifest), dbos.WithStepMaxRetries(0))
 }
 
 func readDownloadManifest(outDir string, mediaURLs int) (DownloadStageResult, error) {
@@ -127,10 +145,12 @@ func readDownloadManifest(outDir string, mediaURLs int) (DownloadStageResult, er
 			Msg:       fmt.Sprintf("download: every URL failed (%d)", man.Failed),
 		}
 	}
+	// Some files arrived and some did not: usually a timeout or a dropped
+	// connection on a large video. Another pass fetches only what is missing.
 	return res, &CLIError{
 		Stage:     StageDownload,
-		Retryable: false,
-		Msg:       fmt.Sprintf("download: ok+skipped=%d total=%d mediaUrls=%d", man.OK+man.Skipped, man.Total, mediaURLs),
+		Retryable: true,
+		Msg:       fmt.Sprintf("download: %d of %d files failed (ok+skipped=%d mediaUrls=%d)", man.Failed, man.Total, man.OK+man.Skipped, mediaURLs),
 	}
 }
 

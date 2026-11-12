@@ -198,8 +198,14 @@ func runPool(jobs []igdl.Job, outDir string, workers int) []igdl.Result {
 	var done atomic.Int64
 	total := int64(len(jobs))
 
+	// The whole-request limit covers the body too, so it has to fit a long
+	// reel on a slow link. A server that never answers is cut off sooner by
+	// the header timeout.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.ResponseHeaderTimeout = 30 * time.Second
 	client := &http.Client{
-		Timeout: 90 * time.Second,
+		Timeout:   15 * time.Minute,
+		Transport: transport,
 		// Follow redirects
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {

@@ -286,17 +286,32 @@ func resumeHandle(host dbos.Context, wfID string) (dbos.WorkflowHandle[flow.Scra
 	if err != nil {
 		return nil, err
 	}
-	start := uint(0)
-	for _, s := range steps {
-		if s.Error != nil {
-			start = uint(s.StepID)
-			break
-		}
-	}
+	start := resumeStartStep(steps)
 	return dbos.ForkWorkflow[flow.ScrapeResult](host, dbos.ForkWorkflowInput{
 		OriginalWorkflowID: wfID,
 		StartStep:          start,
 	})
+}
+
+// resumeStartStep is the step a failed job restarts from: the first step
+// that recorded an error. A job that failed on the download's manifest read
+// restarts at the download before it, because re-reading the same manifest
+// can only fail again.
+func resumeStartStep(steps []dbos.StepInfo) uint {
+	for i, s := range steps {
+		if s.Error == nil {
+			continue
+		}
+		if s.StepName == flow.StepDownloadManifest {
+			for j := i - 1; j >= 0; j-- {
+				if steps[j].StepName == flow.StepDownloadExec {
+					return uint(steps[j].StepID)
+				}
+			}
+		}
+		return uint(s.StepID)
+	}
+	return 0
 }
 
 // withHost acquires the host lock, registers workflows/queues, launches
