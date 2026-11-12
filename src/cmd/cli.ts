@@ -279,6 +279,8 @@ if (isCliEntry()) {
       ...(automatic ? { state: "checkpoint", manualRequired: false, captcha: err.result } : {}),
       hint: err instanceof MissingCredentialsError
         ? "Set IG_USER and IG_PASS in .env, then run: patronum login"
+        : isAuthError(err) && err.state === "totp"
+        ? "Compare the code in your authenticator app with the one IG_TOTP_SECRET produces. If they differ, put the account's current authenticator secret in .env. Wait before trying again: repeated refusals can lock the account."
         : automatic
         ? "Automatic verification stopped. Inspect the CAPTCHA diagnostics and retry after resolving the reported cause."
         : manual
